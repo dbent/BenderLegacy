@@ -476,7 +476,7 @@ namespace Bender.Module
                 response.AppendLine("    Returns the most popular songs by Taylor Swift.");
                 response.AppendLine();
                 response.AppendLine(botName + " music top albums by The Beatles");
-                response.AppendLine("    Returns the most popular songs by The Beatles.");
+                response.AppendLine("    Returns the most popular albums by The Beatles.");
                 response.AppendLine();
                 response.AppendLine(botName + " music top tracks");
                 response.AppendLine("    Returns the most popular songs on Last.fm.");
