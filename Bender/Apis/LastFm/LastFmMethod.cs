@@ -8,12 +8,14 @@ namespace Bender.Apis.LastFm
 {
     public enum LastFmMethod
     {
-        [LastFmMethodName("artist.getTopTracks")]
-        Artist_GetTopTracks,
         [LastFmMethodName("artist.getInfo")]
         Artist_GetInfo,
         [LastFmMethodName("artist.getSimilar")]
         Artist_GetSimilar,
+        [LastFmMethodName("artist.getTopAlbums")]
+        Artist_GetTopAlbums,
+        [LastFmMethodName("artist.getTopTracks")]
+        Artist_GetTopTracks,
         [LastFmMethodName("artist.search")]
         Artist_Search,
         [LastFmMethodName("chart.getHypedArtists")]

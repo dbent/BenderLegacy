@@ -12,6 +12,7 @@ namespace Bender.Apis.LastFm
 {
     public class LastFmClient
     {
+        private const int ResultLimit = 100;
         public const string url = "http://ws.audioscrobbler.com/2.0/";
 
         private string serviceUrl;
@@ -21,9 +22,29 @@ namespace Bender.Apis.LastFm
             this.serviceUrl = url + "?api_key=" + apiKey;
         }
 
+        public async Task<XDocument> GetHypedTracksAsync()
+        {
+            return await QueryGlobalAsync(LastFmMethod.Chart_GetHypedTracks);
+        }
+
+        public async Task<XDocument> GetTopTracksAsync()
+        {
+            return await QueryGlobalAsync(LastFmMethod.Chart_GetTopTracks);
+        }
+
         public async Task<XDocument> GetArtistInfoAsync(string artist)
         {
             return await QueryArtistAsync(LastFmMethod.Artist_GetInfo, artist);
+        }
+
+        public async Task<XDocument> GetArtistTopTracksAsync(string artist)
+        {
+            return await QueryArtistAsync(LastFmMethod.Artist_GetTopTracks, artist);
+        }
+
+        public async Task<XDocument> GetArtistTopAlbumsAsync(string artist)
+        {
+            return await QueryArtistAsync(LastFmMethod.Artist_GetTopAlbums, artist);
         }
 
         public async Task<XDocument> GetSimilarArtistsAsync(string artist)
@@ -38,18 +59,26 @@ namespace Bender.Apis.LastFm
 
         private async Task<XDocument> QueryArtistAsync(LastFmMethod method, string artist)
         {
-            Dictionary<string, string> query = new Dictionary<string, string>(){
-                { "artist", artist }
+            var query = new Dictionary<string, object>(){
+                { "artist", artist }, { "limit", ResultLimit }
             };
             return await QueryAsync(GenerateUrl(method, query));
         }
 
         private async Task<XDocument> QueryTrackAsync(LastFmMethod method, string artist, string track)
         {
-            Dictionary<string, string> query = new Dictionary<string, string>(){
-                { "artist", artist }, { "track", track }
+            var query = new Dictionary<string, object>(){
+                { "artist", artist }, { "track", track }, { "limit", ResultLimit }
             };
             return await QueryAsync(GenerateUrl(method, query));
+        }
+
+        private async Task<XDocument> QueryGlobalAsync(LastFmMethod method)
+        {
+            var query = new Dictionary<string, object>(){
+                { "limit", ResultLimit }
+            };
+            return await QueryAsync(GenerateUrl(method, new Dictionary<string, object>()));
         }
 
         public async Task<XDocument> QueryAsync(string url)
@@ -61,13 +90,13 @@ namespace Bender.Apis.LastFm
 
         private string GenerateUrl(
             LastFmMethod method, 
-            Dictionary<string, string> query)
+            Dictionary<string, object> query)
         {
             StringBuilder uri = new StringBuilder(this.serviceUrl);
             AppendQueryString(uri, "method", GetMethodName(method));
             foreach (var kvp in query)
             {
-                AppendQueryString(uri, kvp.Key, kvp.Value);
+                AppendQueryString(uri, kvp.Key, kvp.Value.ToString());
             }
             return uri.ToString();
         }
