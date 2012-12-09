@@ -37,6 +37,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Web" />
@@ -57,7 +58,7 @@
     <Compile Include="Bot.cs" />
     <Compile Include="Common\ActionDisposable.cs" />
     <Compile Include="Common\MessageData.cs" />
-    <Compile Include="Configuration\Configuration.cs" />
+    <Compile Include="Configuration\AppConfiguration.cs" />
     <Compile Include="Configuration\IConfiguration.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Framework\MessageImpl.cs" />
@@ -84,6 +85,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="App.Local.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Bend\Bend.csproj">
@@ -96,11 +98,11 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
+  <!-- Overrides default App.config file with a local configuration file -->
+  <Target Name="CopyLocalConfiguration">
+    <Copy SourceFiles="$(ProjectDir)\App.Local.config" DestinationFiles="$(TargetDir)$(TargetFileName).config" />
   </Target>
   <Target Name="AfterBuild">
+    <CallTarget Targets="CopyLocalConfiguration" Condition="Exists('$(ProjectDir)\App.Local.config')" />
   </Target>
-  -->
 </Project>

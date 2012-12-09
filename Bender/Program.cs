@@ -15,8 +15,7 @@ namespace Bender
     {
         public static void Main(string[] args)
         {
-            // TODO: We never dispose of the file stream
-            var config = new Configuration.Configuration(new FileStream(@"C:\Bender\bender.config", FileMode.Open));
+            var config = new AppConfiguration();
 
             var bot = new Bot(config, new BendBackend(config));
 
