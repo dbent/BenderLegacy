@@ -73,6 +73,7 @@
     <Compile Include="Module\Reddit.cs" />
     <Compile Include="Module\Pounce.cs" />
     <Compile Include="Module\Slap.cs" />
+    <Compile Include="Module\Stats.cs" />
     <Compile Include="Module\Timer.cs" />
     <Compile Include="Module\WebPreview.cs" />
     <Compile Include="Module\Echo.cs" />
