@@ -1,6 +1,7 @@
 ﻿using Bender.Configuration;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace Bender.Persistence
     internal class JsonKeyValuePersistence : IKeyValuePersistence
     {
         private readonly string filePath;
-        private readonly Dictionary<string, string> storage;
+        private readonly ConcurrentDictionary<string, string> storage;
         private readonly object saveLock = new object();
 
         public JsonKeyValuePersistence(IConfiguration config)
@@ -21,11 +22,11 @@ namespace Bender.Persistence
 
             if (File.Exists(filePath))
             {
-                this.storage = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(filePath));
+                this.storage = JsonConvert.DeserializeObject<ConcurrentDictionary<string, string>>(File.ReadAllText(filePath));
             }
             else
             {
-                this.storage = new Dictionary<string, string>();
+                this.storage = new ConcurrentDictionary<string, string>();
 
                 this.Save();
             }
