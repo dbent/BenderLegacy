@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using Bender.Configuration;
+using Bender.Persistence;
 
 namespace Bender.Module
 {
@@ -18,7 +19,7 @@ namespace Bender.Module
         private Regex regexAlias;
         private IBackend backend;
 
-        public void OnStart(IConfiguration config, IBackend backend)
+        public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
             this.backend = backend;
             if (!String.IsNullOrEmpty(config[Bender.Common.Constants.ConfigKey.WikipediaAlias]))

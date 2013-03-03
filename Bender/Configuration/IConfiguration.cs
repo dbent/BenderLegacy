@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Bender.Backend.Xmpp;
 using Bender.Module;
+using Bender.Persistence;
 
 namespace Bender.Configuration
 {
@@ -19,9 +20,9 @@ namespace Bender.Configuration
         IEnumerable<string> Rooms { get; }
         IEnumerable<IModule> Modules { get; }
 
-        void Start(IBackend backend);
+        void Start(IBackend backend, IKeyValuePersistence persistence);
 
-        void EnableModule(string moduleName, IBackend backend);
+        void EnableModule(string moduleName, IBackend backend, IKeyValuePersistence persistence);
         void DisableModule(string moduleName);
     }
 }

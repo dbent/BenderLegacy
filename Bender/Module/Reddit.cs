@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bender.Configuration;
 using Bender.Module;
+using Bender.Persistence;
 
 namespace Bender.Module
 {
@@ -23,7 +24,7 @@ namespace Bender.Module
 
         private IBackend backend;
 
-        public void OnStart(IConfiguration config, IBackend backend)
+        public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
             this.backend = backend;
         }

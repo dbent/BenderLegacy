@@ -9,6 +9,7 @@ using Bender.Common;
 using Bender.Configuration;
 using Bender.Framework;
 using Bender.Module;
+using Bender.Persistence;
 
 namespace Bender
 {
@@ -18,17 +19,19 @@ namespace Bender
 
         private IConfiguration config;
         private IBackend backend;
+        private IKeyValuePersistence persistence;
 
         private Regex regexDirected;
-      
-        public Bot(IConfiguration config, IBackend backend)
+
+        public Bot(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
             this.config = config;
             this.backend = backend;
+            this.persistence = persistence;
 
             this.regexDirected = new Regex(string.Format(@"^\s*@?{0}(?:,\s*|:\s*|\s+)(.+)$", this.config.Name), RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-            this.config.Start(this.backend);
+            this.config.Start(this.backend, this.persistence);
         }
 
         public async Task RunAsync()

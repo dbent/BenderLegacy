@@ -1,5 +1,6 @@
 ﻿using Bender.Common;
 using Bender.Module;
+using Bender.Persistence;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -66,20 +67,20 @@ namespace Bender.Configuration
             enabledModules = new HashSet<string>(Regex.Split(this[Constants.ConfigKey.Modules], @"\s+"));
         }
 
-        public void Start(IBackend backend)
+        public void Start(IBackend backend, IKeyValuePersistence persistence)
         {
             foreach (var module in Modules)
             {
-                module.OnStart(this, backend);
+                module.OnStart(this, backend, persistence);
             }
         }
 
-        public void EnableModule(string moduleName, IBackend backend)
+        public void EnableModule(string moduleName, IBackend backend, IKeyValuePersistence persistence)
         {
             enabledModules.Add(moduleName);
             AssertModuleResolver();
             moduleResolver.FilterModules();
-            Start(backend);
+            Start(backend, persistence);
             //TODO: Write this change to the configuration file
         }
 

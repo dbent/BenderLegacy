@@ -10,6 +10,7 @@ using System.Web;
 using Bender.Common;
 using Bender.Configuration;
 using Newtonsoft.Json.Linq;
+using Bender.Persistence;
 
 namespace Bender.Module
 {
@@ -25,7 +26,7 @@ namespace Bender.Module
         private IBackend backend;
         private string apiEndPoint;
 
-        public void OnStart(IConfiguration config, IBackend backend)
+        public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
             this.backend = backend;
 

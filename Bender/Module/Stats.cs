@@ -1,4 +1,5 @@
 ﻿using Bender.Configuration;
+using Bender.Persistence;
 using Bent.Common.Extensions;
 using System;
 using System.ComponentModel.Composition;
@@ -15,7 +16,7 @@ namespace Bender.Module
         private IConfiguration config;
         private IBackend backend;
 
-        public void OnStart(IConfiguration config, IBackend backend)
+        public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
             this.config = config;
             this.backend = backend;

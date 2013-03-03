@@ -17,7 +17,7 @@ namespace Bender
         {
             var config = new AppConfiguration();
 
-            var bot = new Bot(config, new BendBackend(config));
+            var bot = new Bot(config, new BendBackend(config), null);
 
             bot.RunAsync().Wait();
         }

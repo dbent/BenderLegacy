@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Bender.Configuration;
+using Bender.Persistence;
 
 namespace Bender.Module
 {
@@ -17,15 +18,17 @@ namespace Bender.Module
         private static IList<string> confirmations = new List<string> { "OK!", "Will do!", "Roger that!", "Sure!", "Okey dokey!" };
         private IConfiguration configuration;
         private IBackend backend;
+        private IKeyValuePersistence persistence;
         private Regex regexGetDll;
         private Regex regexEnableModule;
         private Regex regexDisableModule;
         private Random random;
 
-        public void OnStart(IConfiguration config, IBackend backend)
+        public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
             configuration = config;
             this.backend = backend;
+            this.persistence = persistence;
             random = new Random();
             regexGetDll = new Regex(@"^\s*load library\s+(.+?)\s*$", RegexOptions.IgnoreCase);
             regexEnableModule = new Regex(@"^\s*enable module\s+(.+?)\s*$", RegexOptions.IgnoreCase);
@@ -66,7 +69,7 @@ namespace Bender.Module
                 match = regexEnableModule.Match(message.Body);
                 if (match.Success)
                 {
-                    configuration.EnableModule(match.Groups[1].Value, backend);
+                    configuration.EnableModule(match.Groups[1].Value, backend, persistence);
                     await backend.SendMessageAsync(message.ReplyTo, GetRandomConfirmation());
                     return;
                 }

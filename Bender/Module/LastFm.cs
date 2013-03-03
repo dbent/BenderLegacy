@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bender.Apis.LastFm;
 using Bender.Configuration;
+using Bender.Persistence;
 
 namespace Bender.Module
 {
@@ -41,7 +42,7 @@ namespace Bender.Module
 
         #region IModule Members
 
-        public void OnStart(IConfiguration config, IBackend backend)
+        public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
             this.config = config;
             this.backend = backend;
