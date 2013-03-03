@@ -40,18 +40,23 @@ namespace Bender.Module
             {
                 if (!message.IsFromMyself && !message.IsHistorical)
                 {
-                    var match = regex.Match(message.FullBody);
-                    if (regex.IsMatch(message.FullBody))
-                    {
-                        var uri = new Uri(message.FullBody);
-                        if (uri.IsWellFormedOriginalString())
-                        {
-                            var reply = this.MakeReply(await this.QueryAsync(uri));
+                    var tokens = Regex.Split(message.FullBody, @"\s+");
 
-                            if (!String.IsNullOrWhiteSpace(reply))
+                    foreach (var token in tokens)
+                    {
+                        var match = regex.Match(token);
+                        if (regex.IsMatch(token))
+                        {
+                            var uri = new Uri(token);
+                            if (uri.IsWellFormedOriginalString())
                             {
-                                // TODO: gotta get new lines sorted out
-                                await this.backend.SendMessageAsync(message.ReplyTo, reply);
+                                var reply = this.MakeReply(await this.QueryAsync(uri));
+
+                                if (!String.IsNullOrWhiteSpace(reply))
+                                {
+                                    // TODO: gotta get new lines sorted out
+                                    await this.backend.SendMessageAsync(message.ReplyTo, reply);
+                                }
                             }
                         }
                     }
