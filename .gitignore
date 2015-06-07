@@ -1,0 +1,6 @@
+/Library/
+/Output/
+
+*.suo
+*.user
+*.orig

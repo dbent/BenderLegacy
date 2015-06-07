@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bender", "Bender\Bender.csproj", "{CBE43CE6-FFCD-4B1B-8622-226F50A91101}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bender", "Source\Bender\Bender.csproj", "{CBE43CE6-FFCD-4B1B-8622-226F50A91101}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bent.Common", "Bent.Common\Bent.Common.csproj", "{0C907D81-0408-4C0A-A361-5FCB84071124}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bent.Common", "Source\Bent.Common\Bent.Common.csproj", "{0C907D81-0408-4C0A-A361-5FCB84071124}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bend", "Bend\Bend.csproj", "{52D97202-53E0-4380-BF00-CB5E1FEBCF60}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bend", "Source\Bend\Bend.csproj", "{52D97202-53E0-4380-BF00-CB5E1FEBCF60}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
