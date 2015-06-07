@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Composition;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel.Composition;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Bender.Configuration;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender.Module
@@ -13,14 +9,14 @@ namespace Bender.Module
     [Export(typeof(IModule))]
     class Slap : IModule
     {
-        private static Regex regex = new Regex(@"^\s*slap\s+(.+?)\s*$", RegexOptions.IgnoreCase);
-        private static Regex regexJenna = new Regex("nice.+but", RegexOptions.IgnoreCase);
+        private static readonly Regex Regex = new Regex(@"^\s*slap\s+(.+?)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex RegexJenna = new Regex("nice.+but", RegexOptions.IgnoreCase);
 
-        private IBackend backend;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.backend = backend;
+            _backend = backend;
         }
 
         public void OnMessage(IMessage message)
@@ -33,20 +29,16 @@ namespace Bender.Module
         {
             if (message.IsRelevant)
             {
-                var match = regex.Match(message.Body);
+                var match = Regex.Match(message.Body);
 
                 if (match.Success)
                 {
                     var target = match.Groups[1].Value;
 
-                    if (target.ToLowerInvariant().Contains("dwayne"))
-                    {
-                        this.backend.SendMessageAsync(message.ReplyTo, String.Format("/me turns around and slaps {0} with a large trout!", message.SenderName));
-                    }
-                    else
-                    {
-                        this.backend.SendMessageAsync(message.ReplyTo, String.Format("/me slaps {0} with a large trout!", target));
-                    }
+                    _backend.SendMessageAsync(message.ReplyTo,
+                        target.ToLowerInvariant().Contains("dwayne")
+                            ? $"/me turns around and slaps {message.SenderName} with a large trout!"
+                            : $"/me slaps {target} with a large trout!");
                 }
             }
         }
@@ -57,9 +49,9 @@ namespace Bender.Module
             {
                 if(message.SenderName.ToLowerInvariant().StartsWith("jenna") || message.SenderName.ToLowerInvariant().StartsWith("jmh"))
                 {
-                    if(regexJenna.IsMatch(message.FullBody))
+                    if(RegexJenna.IsMatch(message.FullBody))
                     {
-                        this.backend.SendMessageAsync(message.ReplyTo, "Jenna! (╯°□°）╯︵ ┻━┻");
+                        _backend.SendMessageAsync(message.ReplyTo, "Jenna! (╯°□°）╯︵ ┻━┻");
                     }
                 }
             }

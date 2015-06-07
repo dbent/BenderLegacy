@@ -1,23 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using Bent.Common.Exceptions;
+using Bender.Internal.Exceptions;
 
-namespace Bent.Common.IO
+namespace Bender.Internal.IO
 {
     public sealed class ConsoleStreamObserver : IObserver<ObservableStreamEvent>
     {
-        private readonly Encoding encoding;
-        private readonly ConsoleColor readColor;
-        private readonly ConsoleColor writeColor;
+        private readonly Encoding _encoding;
+        private readonly ConsoleColor _readColor;
+        private readonly ConsoleColor _writeColor;
 
         public ConsoleStreamObserver(Encoding encoding, ConsoleColor readColor, ConsoleColor writeColor)
         {
-            this.encoding = encoding;
-            this.readColor = readColor;
-            this.writeColor = writeColor;
+            _encoding = encoding;
+            _readColor = readColor;
+            _writeColor = writeColor;
         }
 
         public void OnCompleted() { }
@@ -27,7 +25,7 @@ namespace Bent.Common.IO
         public void OnNext(ObservableStreamEvent value)
         {
             ColorConsole.Temp(GetConsoleColor(value.Operation),
-                () => Console.Write(this.encoding.GetString(value.Data.ToArray())));
+                () => Console.Write(_encoding.GetString(value.Data.ToArray())));
         }
 
         private ConsoleColor GetConsoleColor(StreamOperation operation)
@@ -35,9 +33,9 @@ namespace Bent.Common.IO
             switch (operation)
             {
                 case StreamOperation.Read:
-                    return this.readColor;
+                    return _readColor;
                 case StreamOperation.Write:
-                    return this.writeColor;
+                    return _writeColor;
                 default:
                     throw new UnhandledEnumException(operation);
             }

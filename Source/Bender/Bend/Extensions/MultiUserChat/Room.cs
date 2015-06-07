@@ -1,37 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
-using Bend;
+﻿using System.Globalization;
+using Bender.Bend.Clients;
+using Bender.Bend.Elements;
 
-namespace Bend.MultiUserChat
+namespace Bender.Bend.Extensions.MultiUserChat
 {
     internal class Room : IRoom
     {
-        private readonly Jid roomJid;
-        private readonly Jid userJid;
-        private readonly IXmppClient xmppClient;
-        private readonly IClient client;        
+        private readonly Jid _roomJid;
+        private readonly Jid _userJid;
+        private readonly IXmppClient _xmppClient;       
 
-        public Room(Jid room, Jid userJid, IXmppClient xmppClient, IClient client)
+        public Room(Jid room, Jid userJid, IXmppClient xmppClient)
         {
-            this.roomJid = room;
-            this.userJid = userJid;
-            this.xmppClient = xmppClient;
-            this.client = client;
+            _roomJid = room;
+            _userJid = userJid;
+            _xmppClient = xmppClient;
         }
 
         public void Leave()
         {
-            this.xmppClient.SendPresence(this.userJid, PresenceType.Unavailable, null, null);
+            _xmppClient.Send(_userJid, PresenceType.Unavailable, null, null);
         }
 
         public void SendMessage(string message)
         {
-            this.xmppClient.SendMessage(this.roomJid,
+            _xmppClient.Send(_roomJid,
                 type: MessageType.GroupChat,
                 lang: new Automatic<CultureInfo>(),
                 bodies: new[] { new Body(message, new Automatic<CultureInfo>()) }

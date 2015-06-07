@@ -3,62 +3,62 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace Bend.Utility
+namespace Bender.Bend.Utility
 {
     public sealed class MultiObserver<T> : IObserver<T>
     {
-        private ReaderWriterLockSlim rw = new ReaderWriterLockSlim();
-        private HashSet<IObserver<T>> observers = new HashSet<IObserver<T>>();
+        private readonly ReaderWriterLockSlim _rw = new ReaderWriterLockSlim();
+        private readonly HashSet<IObserver<T>> _observers = new HashSet<IObserver<T>>();
 
         public IDisposable Add(IObserver<T> observer)
         {
-            rw.EnterWriteLock();
+            _rw.EnterWriteLock();
             try
             {
-                this.observers.Add(observer);
+                _observers.Add(observer);
             }
             finally
             {
-                rw.ExitWriteLock();
+                _rw.ExitWriteLock();
             }
 
             return new Unsubscriber(() =>
                 {
-                    rw.EnterWriteLock();
+                    _rw.EnterWriteLock();
                     try
                     {
-                        this.observers.Remove(observer);
+                        _observers.Remove(observer);
                     }
                     finally
                     {
-                        rw.EnterWriteLock();
+                        _rw.EnterWriteLock();
                     }
                 });
         }
 
         public void OnCompleted()
         {
-            this.ForEachObserver(i => i.OnCompleted());
+            ForEachObserver(i => i.OnCompleted());
         }
 
         public void OnError(Exception error)
         {
-            this.ForEachObserver(i => i.OnError(error));
+            ForEachObserver(i => i.OnError(error));
         }
 
         public void OnNext(T value)
         {
-            this.ForEachObserver(i => i.OnNext(value));
+            ForEachObserver(i => i.OnNext(value));
         }
 
         private void ForEachObserver(Action<IObserver<T>> action)
         {
             var exceptions = new List<Exception>();
             
-            rw.EnterReadLock();
+            _rw.EnterReadLock();
             try
             {
-                foreach (var o in this.observers)
+                foreach (var o in _observers)
                 {
                     try
                     {
@@ -72,7 +72,7 @@ namespace Bend.Utility
             }
             finally
             {
-                rw.ExitReadLock();
+                _rw.ExitReadLock();
             }
 
             if (exceptions.Any())
@@ -83,16 +83,16 @@ namespace Bend.Utility
 
         private class Unsubscriber : IDisposable
         {
-            private readonly Action unsunscribe;
+            private readonly Action _unsunscribe;
 
             public Unsubscriber(Action unsubcribe)
             {
-                this.unsunscribe = unsubcribe;
+                _unsunscribe = unsubcribe;
             }
 
             public void Dispose()
             {
-                this.unsunscribe();
+                _unsunscribe();
             }
         }        
     }

@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Bender.Backend;
-using Bender.Backend.Xmpp;
-using Bender.Backend.Xmpp.Bend;
+﻿using Bender.Backend.Xmpp.Bend;
 using Bender.Configuration;
 using Bender.Persistence;
 

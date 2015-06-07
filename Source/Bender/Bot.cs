@@ -1,53 +1,48 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Bender.Common;
 using Bender.Configuration;
 using Bender.Framework;
-using Bender.Module;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender
 {
     public class Bot : IObserver<MessageData>
     {
-        private ManualResetEvent done = new ManualResetEvent(false);
+        private readonly ManualResetEvent _done = new ManualResetEvent(false);
 
-        private IConfiguration config;
-        private IBackend backend;
-        private IKeyValuePersistence persistence;
+        private readonly IConfiguration _config;
+        private readonly IBackend _backend;
 
-        private Regex regexDirected;
+        private readonly Regex _regexDirected;
 
         public Bot(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.config = config;
-            this.backend = backend;
-            this.persistence = persistence;
+            _config = config;
+            _backend = backend;
 
-            this.regexDirected = new Regex(string.Format(@"^\s*@?{0}(?:,\s*|:\s*|\s+)(.+)$", this.config.Name), RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            _regexDirected = new Regex($@"^\s*@?{_config.Name}(?:,\s*|:\s*|\s+)(.+)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-            this.config.Start(this.backend, this.persistence);
+            _config.Start(_backend, persistence);
         }
 
         public async Task RunAsync()
         {
-            using (this.done)
-            using (this.backend.Subscribe(this))
+            using (_done)
+            using (_backend.Subscribe(this))
             {
-                await this.backend.ConnectAsync();
+                await _backend.ConnectAsync();
 
-                done.WaitOne();
+                _done.WaitOne();
             }
         }
 
         void IObserver<MessageData>.OnCompleted()
         {
-            done.Set();
+            _done.Set();
         }
 
         void IObserver<MessageData>.OnError(Exception error)
@@ -57,12 +52,12 @@ namespace Bender
 
         void IObserver<MessageData>.OnNext(MessageData value)
         {
-            var matchDirected = regexDirected.Match(value.Body);
+            var matchDirected = _regexDirected.Match(value.Body);
 
             var message = new MessageImpl(value, matchDirected.Success ? matchDirected.Groups[1].Value : null,
                 isAddressedAtMe: matchDirected.Success);
 
-            Parallel.ForEach(this.config.Modules, p =>
+            Parallel.ForEach(_config.Modules, p =>
                 {
                     try
                     {

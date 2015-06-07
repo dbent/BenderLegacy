@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Bender.Apis.WolframAlpha
 {
     internal static class Reference
     {
-        private static IDictionary<Format, string> formatToString = new Dictionary<Format, string>
+        private static readonly IDictionary<Format, string> FormatToString = new Dictionary<Format, string>
         {
             {Format.Html, "html"},
             {Format.Image, "image"},
@@ -20,7 +16,7 @@ namespace Bender.Apis.WolframAlpha
 
         public static string GetFormatString(Format format)
         {
-            return formatToString[format];
+            return FormatToString[format];
         }
     }
 }

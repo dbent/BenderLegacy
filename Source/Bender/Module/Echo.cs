@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Composition;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel.Composition;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Bender.Configuration;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender.Module
@@ -13,24 +9,24 @@ namespace Bender.Module
     [Export(typeof(IModule))]
     internal class Echo : IModule
     {
-        private static Regex regex = new Regex(@"^\s*(?:say|echo)\s+(.+)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        private static readonly Regex Regex = new Regex(@"^\s*(?:say|echo)\s+(.+)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-        private IBackend backend;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.backend = backend;
+            _backend = backend;
         }
 
         public void OnMessage(IMessage message)
         {
             if (message.IsRelevant)
             {
-                var match = regex.Match(message.Body);
+                var match = Regex.Match(message.Body);
 
                 if (match.Success)
                 {
-                     this.backend.SendMessageAsync(message.ReplyTo, match.Groups[1].Value);
+                     _backend.SendMessageAsync(message.ReplyTo, match.Groups[1].Value);
                 }
             }
         }

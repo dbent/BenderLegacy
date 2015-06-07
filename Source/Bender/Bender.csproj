@@ -57,7 +57,7 @@
     <Compile Include="Apis\WolframAlpha\WolframAlphaClient.cs" />
     <Compile Include="Automatic.cs" />
     <Compile Include="Backend\Xmpp\Bend\BendBackend.cs" />
-    <Compile Include="Bend\Addressing\Jid.cs" />
+    <Compile Include="Bend\Jid.cs" />
     <Compile Include="Bend\Clients\IXmppClient.cs" />
     <Compile Include="Bend\Clients\XmppClient.cs" />
     <Compile Include="Bend\Constants\Namespaces.cs" />
@@ -84,7 +84,6 @@
     <Compile Include="Bend\Streams\XmppTcpClientStream.cs" />
     <Compile Include="Bend\Utility\MultiObserver.cs" />
     <Compile Include="Bot.cs" />
-    <Compile Include="Common\ActionDisposable.cs" />
     <Compile Include="Common\MessageData.cs" />
     <Compile Include="Configuration\AppConfiguration.cs" />
     <Compile Include="Configuration\IConfiguration.cs" />

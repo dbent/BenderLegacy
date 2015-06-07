@@ -1,14 +1,15 @@
 ﻿using System.Runtime.CompilerServices;
+using Bender.Bend.Clients;
 
-namespace Bend.MultiUserChat
+namespace Bender.Bend.Extensions.MultiUserChat
 {
-    public static class IXmppClientExtensions
+    public static class XmppClientExtensions
     {
-        private static ConditionalWeakTable<IXmppClient, IClient> extensions = new ConditionalWeakTable<IXmppClient, IClient>();
+        private static readonly ConditionalWeakTable<IXmppClient, IClient> Extensions = new ConditionalWeakTable<IXmppClient, IClient>();
 
         public static IClient MultiUserChat(this IXmppClient self)
         {
-            return extensions.GetValue(self, CreateMultiUserChatClient);
+            return Extensions.GetValue(self, CreateMultiUserChatClient);
         }
 
         private static IClient CreateMultiUserChatClient(IXmppClient xmppClient)

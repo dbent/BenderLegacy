@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Bender.Common;
 
-namespace Bender
+namespace Bender.Interfaces
 {
     public interface IBackend : IDisposable, IObservable<MessageData>
     {

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Bender.Apis.LastFm
 {
@@ -12,7 +8,7 @@ namespace Bender.Apis.LastFm
 
         public LastFmMethodNameAttribute(string value)
         {
-            this.Value = value;
+            Value = value;
         }
     }
 }

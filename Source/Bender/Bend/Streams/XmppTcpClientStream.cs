@@ -8,14 +8,14 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
-using Bend;
-using Bend.Internal;
-using Bend.Utility;
-using Bent.Common.Exceptions;
-using Bent.Common.IO;
-using Bent.Common.Text;
+using Bender.Bend.Constants;
+using Bender.Bend.Utility;
+using Bender.Internal.Exceptions;
+using Bender.Internal.Extensions;
+using Bender.Internal.IO;
+using Bender.Internal.Text;
 
-namespace Bend
+namespace Bender.Bend.Streams
 {
     // TODO: Make STARTTLS a module
     // TODO: Make SASL a module
@@ -37,7 +37,7 @@ namespace Bend
         /// As various events occur the <see cref="XmppTcpClientStream"/>
         /// can transition between one state or another. However, transitions are not
         /// arbitrary and can only occur if they are defined in the 
-        /// <see cref="transitionPaths"/> dictionary.
+        /// <see cref="XmppTcpClientStream.TransitionPaths"/> dictionary.
         /// </para>
         /// <para>
         /// <see cref="State"/> enumeration values do not have explicitly assigned values
@@ -82,7 +82,7 @@ namespace Bend
          *  }
          */
 
-        private static readonly Dictionary<State, HashSet<State>> transitionPaths = new Dictionary<State, HashSet<State>>
+        private static readonly Dictionary<State, HashSet<State>> TransitionPaths = new Dictionary<State, HashSet<State>>
             {
                 {State.StreamStart, new HashSet<State> {
                     State.StreamNegotiation, State.DisconnectLocal, State.DisconnectRemote }},
@@ -102,121 +102,107 @@ namespace Bend
                 {State.Disconnected, new HashSet<State> {
                     State.StreamStart, State.Disposed }},
 
-                {State.Disposed, new HashSet<State> { }},
+                {State.Disposed, new HashSet<State>()},
             };
 
-        private static TimeSpan disconnectingTimeout = TimeSpan.FromSeconds(5);
-        private static TimeSpan whitespaceKeepAlivePeriod = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan DisconnectingTimeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan WhitespaceKeepAlivePeriod = TimeSpan.FromMinutes(5);
 
-        private const string whiteSpaceKeepAliveToken = " ";
+        private const string WhiteSpaceKeepAliveToken = " ";
 
-        private MultiObserver<XElement> multiObserver = new MultiObserver<XElement>();
+        private readonly MultiObserver<XElement> _multiObserver = new MultiObserver<XElement>();
 
-        private Timer disconnectingTimer;
-        private Timer whiteSpaceKeepAliveTimer;
-        private State state = State.Disconnected;
-        private ManualResetEvent connectedEvent = new ManualResetEvent(false);
-        private ManualResetEvent disconnectedEvent = new ManualResetEvent(false);
-        private Stack<Stream> streams = new Stack<Stream>(2);        
+        private Timer _disconnectingTimer;
+        private Timer _whiteSpaceKeepAliveTimer;
+        private State _state = State.Disconnected;
+        private readonly ManualResetEvent _connectedEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent _disconnectedEvent = new ManualResetEvent(false);
+        private readonly Stack<Stream> _streams = new Stack<Stream>(2);        
 
-        private Jid originalJid;
-        private string password; // TODO: don't store the password
+        private readonly Jid _originalJid;
+        private readonly string _password; // TODO: don't store the password
 
-        private EndPoint endPoint;
+        private readonly EndPoint _endPoint;
 
-        private XmlReader xmlReader;
-        private XmlWriter xmlWriter;
+        private XmlReader _xmlReader;
+        private XmlWriter _xmlWriter;
 
-        private IDisposable observableStreamSubscription;
+        private IDisposable _observableStreamSubscription;
 
-        private Jid boundJid;
+        private Jid _boundJid;
         
-        private Stream CurrentStream
-        {
-            get
-            {
-                return this.streams.Peek();
-            }
-        }
-
-        public Jid Jid
-        {
-            get
-            {
-                return this.boundJid == null ? this.originalJid : this.boundJid;
-            }
-        }
+        private Stream CurrentStream => _streams.Peek();
 
         // TODO: Need the option to automatically determine the endpoint
         public XmppTcpClientStream(Jid jid, string password, EndPoint endPoint)
         {
-            this.originalJid = jid;
-            this.password = password;
-            this.endPoint = endPoint;
+            _originalJid = jid;
+            _password = password;
+            _endPoint = endPoint;
 
-            this.whiteSpaceKeepAliveTimer = new Timer(OnWhiteSpaceKeepAlive);
+            _whiteSpaceKeepAliveTimer = new Timer(OnWhiteSpaceKeepAlive);
         }
 
         public void Connect()
         {
-            this.AssertIn(State.Disconnected);
+            AssertIn(State.Disconnected);
 
             var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            socket.Connect(this.endPoint);
+            socket.Connect(_endPoint);
 
-            this.PushStream(new NetworkStream(socket, FileAccess.ReadWrite, true));
+            PushStream(new NetworkStream(socket, FileAccess.ReadWrite, true));
 
-            this.TransitionToStreamStart();
+            TransitionToStreamStart();
 
-            this.connectedEvent.WaitOne();
+            _connectedEvent.WaitOne();
         }
 
         public void Disconnect()
         {
-            this.TransitionToLocalDisconnect();
+            TransitionToLocalDisconnect();
 
-            this.disconnectedEvent.WaitOne();
+            _disconnectedEvent.WaitOne();
         }
 
         public void Send(XElement element)
         {
-            if (this.state.Is(State.DisconnectLocal, State.DisconnectRemote))
+            if (_state.Is(State.DisconnectLocal, State.DisconnectRemote))
             {   // We should be silent while we're in the process of disconnecting
                 // TODO: Log that we're dropping stanzas
             }
             else
             {
-                this.AssertIn(State.Connected);
+                AssertIn(State.Connected);
 
-                this.SendInternal(element);
+                SendInternal(element);
             }
         }
 
         private T PushStream<T>(T stream) where T : Stream
         {
-            this.DisposeObservableStreamSubscription();
+            DisposeObservableStreamSubscription();
 
             var observableStream = new ObservableStream(stream);
 
-            this.observableStreamSubscription = observableStream.Subscribe(new ConsoleStreamObserver(Encoding.Utf8NoBom, ConsoleColor.Cyan, ConsoleColor.Yellow));
+            _observableStreamSubscription = observableStream.Subscribe(new ConsoleStreamObserver(Encoding.Utf8NoBom, ConsoleColor.Cyan, ConsoleColor.Yellow));
             
-            this.streams.Push(observableStream);
+            _streams.Push(observableStream);
 
             return stream;
         }
 
         private void SendInternal(XElement element)
         {
-            element.WriteTo(this.xmlWriter);
-            this.xmlWriter.Flush();
+            element.WriteTo(_xmlWriter);
+            _xmlWriter.Flush();
 
-            this.ResetWhiteSpaceKeepAlive();
+            ResetWhiteSpaceKeepAlive();
         }
 
         private async void StartReadLoopAsync()
         {
             // Keep a private reference to the reader when we start
-            var reader = this.xmlReader;
+            var reader = _xmlReader;
 
             while (await reader.ReadAsync())
             {
@@ -228,7 +214,7 @@ namespace Bend
                             case 0:
                                 if(reader.IsEmptyElement)
                                 {
-                                    this.TransitionToRemoteDisconnect();
+                                    TransitionToRemoteDisconnect();
                                 }
                                 else
                                 {
@@ -246,7 +232,7 @@ namespace Bend
                             case 1:
                                 using (var st = reader.ReadSubtree())
                                 {
-                                    this.ProcessIncomingElement(XElement.Load(st));
+                                    ProcessIncomingElement(XElement.Load(st));
                                 }
                                 break;
                             default:
@@ -259,7 +245,7 @@ namespace Bend
                             case 0:
                                 if (reader.CurrentName().Is(StreamsNamespace.Stream))
                                 {
-                                    this.TransitionToRemoteDisconnect();
+                                    TransitionToRemoteDisconnect();
                                 }
                                 else
                                 {
@@ -270,8 +256,6 @@ namespace Bend
                                 throw new ImpossibleException("Reached end of element other than the root.");
                         }
                         break;
-                    default:
-                        break;
                 }
             }
         }
@@ -280,7 +264,7 @@ namespace Bend
         {
             try
             {
-                this.multiObserver.OnNext(stanza);
+                _multiObserver.OnNext(stanza);
             }
             catch (Exception e)
             {
@@ -289,20 +273,20 @@ namespace Bend
 
             if (stanza.Is(StreamsNamespace.Features))
             {
-                this.OnStreamFeatures(stanza);
+                OnStreamFeatures(stanza);
             }
             else if (stanza.Is(TlsNamespace.Proceed))
             {
                 // TODO: We have two ObservableStreams, the second of which is useless
-                var sslStream = this.PushStream(new SslStream(this.CurrentStream));
+                var sslStream = PushStream(new SslStream(CurrentStream));
 
-                sslStream.AuthenticateAsClient(this.originalJid.Domain);
+                sslStream.AuthenticateAsClient(_originalJid.Domain);
 
-                this.TransitionToStreamStart();
+                TransitionToStreamStart();
             }
             else if (stanza.Is(SaslNamespace.Success))
             {
-                this.TransitionToStreamStart();
+                TransitionToStreamStart();
             }
             else if (stanza.Is(ClientNamespace.Iq))
             {
@@ -312,14 +296,14 @@ namespace Bend
 
                     if (jidElement.IsNotNull())
                     {
-                        this.boundJid = new Jid(jidElement.Value);
+                        _boundJid = Jid.Parse(jidElement.Value);
                     }
                     else
                     {
                         // TODO: error condition
                     }
                     
-                    this.TransitionToConnected();
+                    TransitionToConnected();
                 }
             }
         }
@@ -330,14 +314,14 @@ namespace Bend
 	        {
                 if (feature.Is(TlsNamespace.StartTls))
                 {
-                    this.SendInternal(new XElement(TlsNamespace.StartTls));
+                    SendInternal(new XElement(TlsNamespace.StartTls));
 
                     break;
                 }
                 else if (feature.Is(SaslNamespace.Mechanisms))
                 {
-                    var user = this.originalJid.Local.ToUtf8Bytes();
-                    var pass = this.password.ToUtf8Bytes();
+                    var user = _originalJid.Local.ToUtf8Bytes();
+                    var pass = _password.ToUtf8Bytes();
                     var nul = "\0".ToUtf8Bytes();
 
                     var message = Enumerable.Empty<byte>()
@@ -347,13 +331,13 @@ namespace Bend
                         .Concat(nul)
                         .Concat(pass).ToBase64();
 
-                    this.SendInternal(new XElement(SaslNamespace.Auth,
+                    SendInternal(new XElement(SaslNamespace.Auth,
                         new XAttribute("mechanism", "PLAIN"),
                         message));
                 }
                 else if (feature.Is(BindNamespace.Bind))
                 {
-                    this.SendInternal(new XElement(ClientNamespace.Iq,
+                    SendInternal(new XElement(ClientNamespace.Iq,
                         new XAttribute("id", Guid.NewGuid().ToString()),
                         new XAttribute("type", "set"),
                         new XElement(BindNamespace.Bind)));
@@ -363,35 +347,35 @@ namespace Bend
 
         private void ResetWhiteSpaceKeepAlive()
         {
-            this.whiteSpaceKeepAliveTimer.Change(whitespaceKeepAlivePeriod, whitespaceKeepAlivePeriod);
+            _whiteSpaceKeepAliveTimer.Change(WhitespaceKeepAlivePeriod, WhitespaceKeepAlivePeriod);
         }
 
         private void OnWhiteSpaceKeepAlive(object state)
         {
-            this.xmlWriter.WriteWhitespace(whiteSpaceKeepAliveToken);
-            this.xmlWriter.Flush();
+            _xmlWriter.WriteWhitespace(WhiteSpaceKeepAliveToken);
+            _xmlWriter.Flush();
         }
 
         #region State Machine
 
         private void TransitionToStreamStart()
         {
-            var prevState = this.AssertAndDoTransitionTo(State.StreamStart);
+            var prevState = AssertAndDoTransitionTo(State.StreamStart);
 
             if (prevState.Is(State.StreamNegotiation))
             {
-                this.DisposeXmlWriter();
-                this.DisposeXmlReader();
+                DisposeXmlWriter();
+                DisposeXmlReader();
             }
 
-            this.xmlReader = XmlReader.Create(this.CurrentStream, new XmlReaderSettings
+            _xmlReader = XmlReader.Create(CurrentStream, new XmlReaderSettings
                 {
                     Async = true,
                     CloseInput = false,
                     ConformanceLevel = ConformanceLevel.Fragment,
                 });
 
-            this.xmlWriter = XmlWriter.Create(this.CurrentStream, new XmlWriterSettings
+            _xmlWriter = XmlWriter.Create(CurrentStream, new XmlWriterSettings
                 {
                     Async = true,
                     CloseOutput = false,
@@ -400,64 +384,64 @@ namespace Bend
                     WriteEndDocumentOnClose = false,
                 });
 
-            this.StartReadLoopAsync();
+            StartReadLoopAsync();
 
-            this.xmlWriter.WriteRaw(new XDeclaration("1.0", "utf-8", null).ToString());
-            this.xmlWriter.WriteStartElement("stream", "stream", Namespaces.Streams.ToString());
-            this.xmlWriter.WriteAttributeString("from", originalJid.Bare.ToString()); // TODO: don't send the from header if the stream is not secure
-            this.xmlWriter.WriteAttributeString("to", originalJid.Domain);
-            this.xmlWriter.WriteAttributeString("version", "1.0");
-            this.xmlWriter.WriteAttributeString("xml", "lang", null, "en");
-            this.xmlWriter.WriteAttributeString("xmlns", null, Namespaces.Client.ToString());
-            this.xmlWriter.WriteAttributeString("xmlns", "stream", null, Namespaces.Streams.ToString());
-            this.xmlWriter.WriteString(String.Empty); // to force closure of opening element
+            _xmlWriter.WriteRaw(new XDeclaration("1.0", "utf-8", null).ToString());
+            _xmlWriter.WriteStartElement("stream", "stream", Namespaces.Streams.ToString());
+            _xmlWriter.WriteAttributeString("from", _originalJid.Bare.ToString()); // TODO: don't send the from header if the stream is not secure
+            _xmlWriter.WriteAttributeString("to", _originalJid.Domain);
+            _xmlWriter.WriteAttributeString("version", "1.0");
+            _xmlWriter.WriteAttributeString("xml", "lang", null, "en");
+            _xmlWriter.WriteAttributeString("xmlns", null, Namespaces.Client.ToString());
+            _xmlWriter.WriteAttributeString("xmlns", "stream", null, Namespaces.Streams.ToString());
+            _xmlWriter.WriteString(string.Empty); // to force closure of opening element
 
-            this.xmlWriter.Flush();
+            _xmlWriter.Flush();
 
-            this.TransitionToStreamNegotiation();
+            TransitionToStreamNegotiation();
         }
 
         private void TransitionToStreamNegotiation()
         {
-            this.AssertAndDoTransitionTo(State.StreamNegotiation);            
+            AssertAndDoTransitionTo(State.StreamNegotiation);            
         }
 
         private void TransitionToConnected()
         {
-            this.AssertAndDoTransitionTo(State.Connected);
+            AssertAndDoTransitionTo(State.Connected);
 
-            this.connectedEvent.Set();
+            _connectedEvent.Set();
 
-            this.ResetWhiteSpaceKeepAlive();
+            ResetWhiteSpaceKeepAlive();
         }
 
         private void TransitionToLocalDisconnect()
         {
-            this.AssertAndDoTransitionTo(State.DisconnectLocal);
+            AssertAndDoTransitionTo(State.DisconnectLocal);
 
-            this.xmlWriter.WriteEndElement();
-            this.xmlWriter.Flush();
+            _xmlWriter.WriteEndElement();
+            _xmlWriter.Flush();
 
-            this.disconnectingTimer = new Timer(s =>
+            _disconnectingTimer = new Timer(s =>
                 {
-                    if (this.state.Is(State.DisconnectLocal))
+                    if (_state.Is(State.DisconnectLocal))
                     {
-                        this.TransitionToDisconnected();
+                        TransitionToDisconnected();
                     }
-                }, null, disconnectingTimeout, TimeSpan.Zero);
+                }, null, DisconnectingTimeout, TimeSpan.Zero);
         }
 
         private void TransitionToRemoteDisconnect()
         {
-            var prevState = this.AssertAndDoTransitionTo(State.DisconnectRemote);
+            var prevState = AssertAndDoTransitionTo(State.DisconnectRemote);
 
             if (!prevState.Is(State.DisconnectLocal))
             {
-                this.xmlWriter.WriteEndElement();
-                this.xmlWriter.Flush();
+                _xmlWriter.WriteEndElement();
+                _xmlWriter.Flush();
             }
 
-            this.TransitionToDisconnected();
+            TransitionToDisconnected();
         }
 
         private void TransitionToDisconnected()
@@ -469,32 +453,32 @@ namespace Bend
 
             // TODO: need to reinitialize all the disposables if we reconnnect later
 
-            this.DisposeDisconnectingTimer();
-            this.DisposeWhiteSpaceKeepAliveTimer();
+            DisposeDisconnectingTimer();
+            DisposeWhiteSpaceKeepAliveTimer();
 
-            this.AssertAndDoTransitionTo(State.Disconnected);
+            AssertAndDoTransitionTo(State.Disconnected);
 
-            this.DisposeXmlWriter();
-            this.DisposeXmlReader();
-            this.DisposeStreams();
-            this.DisposeObservableStreamSubscription();
+            DisposeXmlWriter();
+            DisposeXmlReader();
+            DisposeStreams();
+            DisposeObservableStreamSubscription();
 
             // TODO: reset the various wait handles
-            this.disconnectedEvent.Set();
+            _disconnectedEvent.Set();
         }
 
         private void TransitionToDisposed()
         {
-            this.AssertAndDoTransitionTo(State.Disposed);
+            AssertAndDoTransitionTo(State.Disposed);
 
-            this.DisposeXmlWriter();
-            this.DisposeXmlReader();
-            this.DisposeStreams();
-            this.DisposeObservableStreamSubscription();
+            DisposeXmlWriter();
+            DisposeXmlReader();
+            DisposeStreams();
+            DisposeObservableStreamSubscription();
 
             try
             {
-                this.multiObserver.OnCompleted();
+                _multiObserver.OnCompleted();
             }
             catch (Exception e)
             {
@@ -508,7 +492,7 @@ namespace Bend
 
         public IDisposable Subscribe(IObserver<XElement> observer)
         {
-            return this.multiObserver.Add(observer);
+            return _multiObserver.Add(observer);
         }
 
         #endregion
@@ -517,46 +501,46 @@ namespace Bend
 
         public void Dispose()
         {
-            if (this.state.Is(State.StreamStart, State.StreamNegotiation, State.Connected))
+            if (_state.Is(State.StreamStart, State.StreamNegotiation, State.Connected))
             {
-                this.Disconnect();
+                Disconnect();
             }
 
-            this.TransitionToDisposed();
+            TransitionToDisposed();
         }
 
         private void DisposeDisconnectingTimer()
         {
-            if (this.disconnectingTimer.IsNotNull())
+            if (_disconnectingTimer.IsNotNull())
             {
-                this.disconnectingTimer.Dispose();
-                this.disconnectingTimer = null;
+                _disconnectingTimer.Dispose();
+                _disconnectingTimer = null;
             }
         }
 
         private void DisposeWhiteSpaceKeepAliveTimer()
         {
-            if (this.whiteSpaceKeepAliveTimer.IsNotNull())
+            if (_whiteSpaceKeepAliveTimer.IsNotNull())
             {
-                this.whiteSpaceKeepAliveTimer.Dispose();
-                this.whiteSpaceKeepAliveTimer = null;
+                _whiteSpaceKeepAliveTimer.Dispose();
+                _whiteSpaceKeepAliveTimer = null;
             }
         }
 
         private void DisposeObservableStreamSubscription()
         {
-            if (this.observableStreamSubscription.IsNotNull())
+            if (_observableStreamSubscription.IsNotNull())
             {
-                this.observableStreamSubscription.Dispose();
-                this.observableStreamSubscription = null;
+                _observableStreamSubscription.Dispose();
+                _observableStreamSubscription = null;
             }
         }
 
         private void DisposeStreams()
         {
-            while (this.streams.Count != 0)
+            while (_streams.Count != 0)
             {
-                var stream = this.streams.Pop();
+                var stream = _streams.Pop();
                 if (stream.IsNotNull())
                 {
                     stream.Dispose();
@@ -566,11 +550,11 @@ namespace Bend
 
         private void DisposeXmlReader()
         {
-            if (this.xmlReader.IsNotNull())
+            if (_xmlReader.IsNotNull())
             {
                 try
                 {
-                    this.xmlReader.Dispose();
+                    _xmlReader.Dispose();
                 }
                 catch (InvalidOperationException e)
                 {   /* TODO: Find a way to dispose of XmlReader more gracefully
@@ -584,16 +568,16 @@ namespace Bend
                     }
                 }
 
-                this.xmlReader = null;
+                _xmlReader = null;
             }
         }
 
         private void DisposeXmlWriter()
         {
-            if (this.xmlWriter.IsNotNull())
+            if (_xmlWriter.IsNotNull())
             {
-                this.xmlWriter.Dispose();
-                this.xmlWriter = null;
+                _xmlWriter.Dispose();
+                _xmlWriter = null;
             }
         }
 
@@ -603,35 +587,35 @@ namespace Bend
 
         private State AssertAndDoTransitionTo(State state)
         {
-            if (!transitionPaths[this.state].Contains(state))
+            if (!TransitionPaths[_state].Contains(state))
             {
-                if (this.state == State.Disposed)
+                if (_state == State.Disposed)
                 {
                     throw new ObjectDisposedException(null);
                 }
                 else
                 {
-                    throw new InvalidOperationException("Attempted to transition from {0} to {1}.".FormatWith(this.state, state));
+                    throw new InvalidOperationException("Attempted to transition from {0} to {1}.".FormatWith(_state, state));
                 }
             }
 
-            var prevState = this.state;
-            this.state = state;
+            var prevState = _state;
+            _state = state;
 
             return prevState;
         }
 
         private void AssertIn(params State[] states)
         {
-            if (!this.state.Is(states))
+            if (!_state.Is(states))
             {
-                switch (this.state)
+                switch (_state)
                 {
                     case State.Disposed:
                         throw new ObjectDisposedException(null);
                     default:
                         throw new InvalidOperationException("Stream is in state {0}, expected it to be in one of the following states: {1}."
-                            .FormatWith(this.state, states.Select(i => i.ToString()).Aggregate((i, j) => i + ", " + j)));
+                            .FormatWith(_state, states.Select(i => i.ToString()).Aggregate((i, j) => i + ", " + j)));
                 }
             }
         }
