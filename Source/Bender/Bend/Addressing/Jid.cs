@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Bent.Common.Extensions;
-
 namespace Bend
 {
     public sealed class Jid
@@ -32,7 +30,7 @@ namespace Bend
 
         private Jid(Tuple<string, string, string> splitJid)
         {
-            if (splitJid.Item2.IsNull())
+            if (splitJid.Item2 == null)
             {
                 throw new ArgumentNullException("domain");
             }
@@ -41,10 +39,9 @@ namespace Bend
             this.Domain = splitJid.Item2;
             this.Resource = splitJid.Item3;
 
-            this.Bare = this.Resource.IsNull() ? this : new Jid(this.Local, this.Domain);
-            this.toString = this.Local.IsNull() ? this.Domain :
-                (this.Resource.IsNull() ? formatBare.FormatWith(this.Local, this.Domain) :
-                    formatFull.FormatWith(this.Local, this.Domain, this.Resource));
+            this.Bare = this.Resource == null ? this : new Jid(this.Local, this.Domain);
+            this.toString = this.Local == null ? this.Domain :
+                (this.Resource == null ? $"{Local}@{Domain}" : $"{Local}@{Domain}/{Resource}");
         }
 
         public override string ToString()

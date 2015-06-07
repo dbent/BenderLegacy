@@ -1,10 +1,11 @@
 ﻿using Bender.Configuration;
 using Bender.Persistence;
-using Bent.Common.Extensions;
 using System;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Bend;
+using Bend.Internal;
 
 namespace Bender.Module
 {

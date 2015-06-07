@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Bent.Common.Extensions
+namespace Bend.Internal
 {
-    public static class ObjectExtensions
+    internal static class ObjectExtensions
     {
         public static IEnumerable<T> AsEnumerable<T>(this T obj)
         {

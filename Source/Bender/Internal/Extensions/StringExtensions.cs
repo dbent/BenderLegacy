@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Bent.Common.Text;
 
-namespace Bent.Common.Extensions
+
+namespace Bend.Internal
 {
-    public static class StringExtensions
+    internal static class StringExtensions
     {
         public static string FormatWith(this string self, object arg0)
         {

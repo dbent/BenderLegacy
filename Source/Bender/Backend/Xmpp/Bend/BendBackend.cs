@@ -4,11 +4,12 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bend;
+using Bend.Internal;
 using Bend.MultiUserChat;
+using Bend.Utility;
 using Bender.Common;
 using Bender.Configuration;
 using Bent.Common;
-using Bent.Common.Extensions;
 
 namespace Bender.Backend.Xmpp.Bend
 {

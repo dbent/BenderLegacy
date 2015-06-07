@@ -4,7 +4,11 @@ var target = Argument<string>("target", "Build");
 var configuration = Argument<string>("configuration", "Debug");
 var release = Argument<bool>("release", false);
 
+var assemblyInfoFile = "Source/Bender/Properties/AssemblyInfo.cs";
 var outputDirectory = "Output";
+var buildVersionFile = $"{outputDirectory}/VERSION";
+var buildPreleaseFile = $"{outputDirectory}/PRELEASE";
+var buildChangeLogFile = $"{outputDirectory}/CHANGELOG";
 var buildDirectory = Directory($"{outputDirectory}/Build/{configuration}");
 
 Task("CleanBuild")
@@ -22,16 +26,49 @@ Task("Restore")
 Task("BuildVersionInfo")
     .Does(() =>
 {
-    BuildVersionInfo("Bend");
-    BuildVersionInfo("Bender");
+    SemVer buildVersion;
+
+    var changeLog = GetChangeLog();
+    var version = changeLog.LatestVersion;
+    var rev = GetGitRevision(useShort: true);
+
+    if (rev != null && !release)
+    {
+        if (version.Build == null)
+        {
+            buildVersion = new SemVer(version.Major, version.Minor, version.Patch, version.Pre, rev);
+        }
+        else
+        {
+            throw new Exception($"ChangeLog already contains build metadata.");
+        }
+    }
+    else
+    {
+        buildVersion = version;
+    }
+
+    System.IO.File.WriteAllText(buildVersionFile, buildVersion);
+    System.IO.File.WriteAllText(buildPreleaseFile, (buildVersion.Pre != null).ToString().ToLower());
+    System.IO.File.WriteAllText(buildChangeLogFile, changeLog.LatestChanges);
 });
 
 Task("BuildAssemblyInfo")
     .IsDependentOn("BuildVersionInfo")
     .Does(() =>
 {
-    BuildAssemblyInfo("Bend");
-    BuildAssemblyInfo("Bender");
+    var version = GetBuildVersion();
+
+    var output = TransformTextFile($"{assemblyInfoFile}.in")
+        .WithToken("VERSION", version)
+        .WithToken("VERSION.MAJOR", version.Major)
+        .WithToken("VERSION.MINOR", version.Minor)
+        .WithToken("VERSION.PATCH", version.Patch)
+        .WithToken("VERSION.PRE", version.Pre)
+        .WithToken("VERSION.BUILD", version.Build)
+        .ToString();
+
+    System.IO.File.WriteAllText(assemblyInfoFile, output);
 });
 
 Task("Build")
@@ -46,68 +83,18 @@ Task("Build")
 Task("Version")
     .Does(() =>
 {
-    Information($"Bend:   {GetVersion("Bend")}");
-    Information($"Bender: {GetVersion("Bender")}");
+    Information(GetVersion());
 });
 
 Task("ChangeLog")
     .Does(() =>
 {
-    Information($"# Bend{Environment.NewLine}{GetChangeLog("Bend").LatestChanges}");
-    Information($"# Bender{Environment.NewLine}{GetChangeLog("Bender").LatestChanges}");
+    Information(GetChangeLog().LatestChanges);
 });
 
 RunTarget(target);
 
-private void BuildVersionInfo(string project)
+private SemVer GetBuildVersion()
 {
-    SemVer buildVersion;
-
-    var changeLog = GetChangeLog(project);
-    var version = changeLog.LatestVersion;
-    var rev = GetGitRevision(useShort: true);
-
-    if (rev != null && !release)
-    {
-        if (version.Build == null)
-        {
-            buildVersion = new SemVer(version.Major, version.Minor, version.Patch, version.Pre, rev);
-        }
-        else
-        {
-            throw new Exception($"{project} ChangeLog already contains build metadata.");
-        }
-    }
-    else
-    {
-        buildVersion = version;
-    }
-
-    System.IO.File.WriteAllText($"Output/{project}.version", buildVersion);
-    System.IO.File.WriteAllText($"Output/{project}.prelease", (buildVersion.Pre != null).ToString().ToLower());
-    System.IO.File.WriteAllText($"Output/{project}.changelog", changeLog.LatestChanges);
-}
-
-private void BuildAssemblyInfo(string project)
-{
-    var inFile = $"Source/{project}/Properties/AssemblyInfo.cs.in";
-    var outFile = $"Source/{project}/Properties/AssemblyInfo.cs";
-
-    var version = GetBuildVersion(project);
-
-    var output = TransformTextFile(inFile)
-        .WithToken("VERSION", version)
-        .WithToken("VERSION.MAJOR", version.Major)
-        .WithToken("VERSION.MINOR", version.Minor)
-        .WithToken("VERSION.PATCH", version.Patch)
-        .WithToken("VERSION.PRE", version.Pre)
-        .WithToken("VERSION.BUILD", version.Build)
-        .ToString();
-
-    System.IO.File.WriteAllText(outFile, output);
-}
-
-private SemVer GetBuildVersion(string project)
-{
-    return new SemVer(System.IO.File.ReadAllText($"Output/{project}.version"));
+    return new SemVer(System.IO.File.ReadAllText(buildVersionFile));
 }
