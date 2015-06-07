@@ -1,37 +1,33 @@
 ﻿using System;
 
-namespace Bend
+namespace Bender
 {
     public struct Automatic<T>
     {
-        private readonly T value;
-        private readonly bool hasValue;
+        private readonly T _value;
 
-        public bool HasValue
-        {
-            get { return this.hasValue; }
-        }
+        public bool HasValue { get; }
 
         public T Value
         {
             get
             {
-                if (!this.hasValue)
+                if (!HasValue)
                     throw new Exception("Value must be determined automatically by caller.");
 
-                return this.value;
+                return _value;
             }
         }
 
         public Automatic(T value)
         {
-            this.value = value;
-            this.hasValue = true;
+            _value = value;
+            HasValue = true;
         }
 
         public T ValueOr(T automaticValue)
         {
-            return this.hasValue ? this.value : automaticValue;
+            return HasValue ? _value : automaticValue;
         }
 
         public static implicit operator Automatic<T>(T value)

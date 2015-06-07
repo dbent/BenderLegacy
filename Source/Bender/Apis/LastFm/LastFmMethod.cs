@@ -1,32 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Bender.Apis.LastFm
+﻿namespace Bender.Apis.LastFm
 {
     public enum LastFmMethod
     {
         [LastFmMethodName("artist.getInfo")]
-        Artist_GetInfo,
+        ArtistGetInfo,
         [LastFmMethodName("artist.getSimilar")]
-        Artist_GetSimilar,
+        ArtistGetSimilar,
         [LastFmMethodName("artist.getTopAlbums")]
-        Artist_GetTopAlbums,
+        ArtistGetTopAlbums,
         [LastFmMethodName("artist.getTopTracks")]
-        Artist_GetTopTracks,
+        ArtistGetTopTracks,
         [LastFmMethodName("artist.search")]
-        Artist_Search,
+        ArtistSearch,
         [LastFmMethodName("chart.getHypedArtists")]
-        Chart_GetHypedArtists,
+        ChartGetHypedArtists,
         [LastFmMethodName("chart.getHypedTracks")]
-        Chart_GetHypedTracks,
+        ChartGetHypedTracks,
         [LastFmMethodName("chart.getTopArtists")]
-        Chart_GetTopArtists,
+        ChartGetTopArtists,
         [LastFmMethodName("chart.getTopTracks")]
-        Chart_GetTopTracks,
+        ChartGetTopTracks,
         [LastFmMethodName("track.getSimilar")]
-        Track_GetSimilar,
+        TrackGetSimilar,
     }
 }

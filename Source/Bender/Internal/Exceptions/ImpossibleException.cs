@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Bend.Internal;
+using Bender.Internal.Extensions;
 
-namespace Bent.Common.Exceptions
+namespace Bender.Internal.Exceptions
 {
     public class ImpossibleException : Exception
     {

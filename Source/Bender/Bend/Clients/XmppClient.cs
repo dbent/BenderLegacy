@@ -1,78 +1,72 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Linq;
-using Bend;
-using Bend.Utility;
+using Bender.Bend.Constants;
+using Bender.Bend.Elements;
+using Bender.Bend.Streams;
+using Bender.Bend.Utility;
 
-namespace Bend
+namespace Bender.Bend.Clients
 {
     public sealed class XmppClient : IXmppClient, IObserver<XElement>
     {
-        private const string exceptionConnected = "Session is already connected.";
-        private const string exceptionNotConnected = "Session is not connected.";
+        private const string ExceptionConnected = "Session is already connected.";
+        private const string ExceptionNotConnected = "Session is not connected.";
 
-        private MultiObserver<XElement> multiObserver = new MultiObserver<XElement>();
+        private readonly MultiObserver<XElement> _multiObserver = new MultiObserver<XElement>();
 
-        private bool connected;
-        private bool disposed;
+        private bool _connected;
+        private bool _disposed;
 
-        private IXmppClientStream clientStream;
-
-        public Jid Jid
-        {
-            get { return this.clientStream.Jid; }
-        }
+        private IXmppClientStream _clientStream;
 
         public XmppClient(IXmppClientStream clientStream)
         {
-            this.clientStream = clientStream;
-            this.clientStream.Subscribe(this);
+            _clientStream = clientStream;
+            _clientStream.Subscribe(this);
         }
 
         #region Public API
 
         public void Connect()
         {
-            this.AssertNotDisposed();
-            this.AssertNotConnected();
+            AssertNotDisposed();
+            AssertNotConnected();
 
-            this.clientStream.Connect();
+            _clientStream.Connect();
 
-            this.SendPresenceInternal(null, null, null, null, false);
+            SendPresenceInternal(null, null, null, null, false);
 
-            this.connected = true;
+            _connected = true;
         }
 
         public void Disconnect()
         {
-            this.AssertNotDisposed();
-            this.AssertConnected();
+            AssertNotDisposed();
+            AssertConnected();
 
-            this.clientStream.Disconnect();
+            _clientStream.Disconnect();
 
-            this.connected = false;
+            _connected = false;
         }
 
         public void Send(XElement stanza)
         {
-            this.SendInternal(stanza);
+            SendInternal(stanza);
         }        
 
-        public void SendMessage(Jid to, MessageType type,
+        public void Send(Jid to, MessageType type,
             Automatic<CultureInfo> lang, IEnumerable<Body> bodies)
         {
-            this.SendMessageInternal(to, type, lang, bodies, true);
+            SendMessageInternal(to, type, lang, bodies, true);
         }
 
-        public void SendPresence(Jid to, PresenceType type,
+        public void Send(Jid to, PresenceType type,
             Automatic<CultureInfo> lang, IEnumerable<XElement> extendedContent)
         {
-            this.SendPresenceInternal(to, type, lang, extendedContent, true);
+            SendPresenceInternal(to, type, lang, extendedContent, true);
         }
 
         #endregion
@@ -83,18 +77,18 @@ namespace Bend
         {
             if (check)
             {
-                this.AssertNotDisposed();
-                this.AssertConnected();
+                AssertNotDisposed();
+                AssertConnected();
             }
 
-            this.clientStream.Send(stanza);
+            _clientStream.Send(stanza);
         }
 
         private void SendMessageInternal(Jid to, MessageType type,
             Automatic<CultureInfo> lang, IEnumerable<Body> bodies,
             bool check)
         {
-            var stanza = new XElement(ClientNamespace.Message, new XAttribute("id", this.GenerateId()));
+            var stanza = new XElement(ClientNamespace.Message, new XAttribute("id", GenerateId()));
 
             stanza.Add(new XAttribute("to", to));
 
@@ -113,14 +107,14 @@ namespace Bend
                 stanza.Add(bodies.Select(i => (XElement)i));
             }
 
-            this.SendInternal(stanza, check);
+            SendInternal(stanza, check);
         }
 
         private void SendPresenceInternal(Jid to, PresenceType type,
             Automatic<CultureInfo> lang, IEnumerable<XElement> extendedContent,
             bool check)
         {
-            var stanza = new XElement(ClientNamespace.Presence, new XAttribute("id", this.GenerateId()));
+            var stanza = new XElement(ClientNamespace.Presence, new XAttribute("id", GenerateId()));
 
             if (to != null)
             {
@@ -142,10 +136,10 @@ namespace Bend
                 stanza.Add(extendedContent);
             }
 
-            this.SendInternal(stanza, check);
+            SendInternal(stanza, check);
         }
 
-        private string GenerateId()
+        private static string GenerateId()
         {
             return Guid.NewGuid().ToString();
         }
@@ -156,7 +150,7 @@ namespace Bend
 
         public IDisposable Subscribe(IObserver<XElement> observer)
         {
-            return this.multiObserver.Add(observer);
+            return _multiObserver.Add(observer);
         }
 
         #endregion
@@ -165,17 +159,17 @@ namespace Bend
 
         public void Dispose()
         {
-            this.DisposeClientStream();
+            DisposeClientStream();
 
-            this.disposed = true;
+            _disposed = true;
         }
 
         private void DisposeClientStream()
         {
-            if (this.clientStream != null)
+            if (_clientStream != null)
             {
-                this.clientStream.Dispose();
-                this.clientStream = null;
+                _clientStream.Dispose();
+                _clientStream = null;
             }
         }
 
@@ -185,7 +179,7 @@ namespace Bend
 
         private void AssertNotDisposed()
         {
-            if (this.disposed)
+            if (_disposed)
             {
                 throw new ObjectDisposedException(null);
             }
@@ -193,17 +187,17 @@ namespace Bend
 
         private void AssertConnected()
         {
-            if (!this.connected)
+            if (!_connected)
             {
-                throw new InvalidOperationException(exceptionNotConnected);
+                throw new InvalidOperationException(ExceptionNotConnected);
             }
         }
 
         private void AssertNotConnected()
         {
-            if (this.connected)
+            if (_connected)
             {
-                throw new InvalidOperationException(exceptionConnected);
+                throw new InvalidOperationException(ExceptionConnected);
             }
         }
 
@@ -213,7 +207,7 @@ namespace Bend
         {
             try
             {
-                this.multiObserver.OnCompleted();
+                _multiObserver.OnCompleted();
             }
             catch (Exception e)
             {
@@ -225,7 +219,7 @@ namespace Bend
         {
             try
             {
-                this.multiObserver.OnError(error);
+                _multiObserver.OnError(error);
             }
             catch (Exception e)
             {
@@ -237,7 +231,7 @@ namespace Bend
         {
             try
             {
-                this.multiObserver.OnNext(value);
+                _multiObserver.OnNext(value);
             }
             catch (Exception e)
             {

@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-namespace Bend.Internal
+namespace Bender.Internal.Extensions
 {
     internal static class XElementExtensions
     {

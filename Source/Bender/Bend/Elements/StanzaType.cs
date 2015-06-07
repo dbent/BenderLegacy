@@ -1,29 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 
-namespace Bend
+namespace Bender.Bend.Elements
 {
     public abstract class StanzaType : IAttribute
     {
-        private readonly XAttribute attribute;
+        private readonly XAttribute _attribute;
 
-        public XAttribute Attribute
-        {
-            get { return new XAttribute(this.attribute); }
-        }        
+        public XAttribute Attribute => new XAttribute(_attribute);
 
         protected StanzaType(string value)
         {
-            this.attribute = new XAttribute("type", value);
+            _attribute = new XAttribute("type", value);
         }
 
         public override string ToString()
         {
-            return this.attribute.Value;
+            return _attribute.Value;
         }
 
         public static implicit operator XAttribute(StanzaType type)

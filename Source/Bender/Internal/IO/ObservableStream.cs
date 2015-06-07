@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Bent.Common.IO
+namespace Bender.Internal.IO
 {
     public sealed class ObservableStream : WrapperStreamBase, IObservable<ObservableStreamEvent>
     {
-        private readonly List<IObserver<ObservableStreamEvent>> observers = new List<IObserver<ObservableStreamEvent>>();
+        private readonly List<IObserver<ObservableStreamEvent>> _observers = new List<IObserver<ObservableStreamEvent>>();
 
         public ObservableStream(Stream stream)
             : base(stream) { }
@@ -19,7 +16,7 @@ namespace Bent.Common.IO
         {
             var ret =  base.Read(buffer, offset, count);
 
-            this.NotifySubscribers(new ObservableStreamEvent(StreamOperation.Read, buffer.Skip(offset).Take(ret).ToList()));
+            NotifySubscribers(new ObservableStreamEvent(StreamOperation.Read, buffer.Skip(offset).Take(ret).ToList()));
 
             return ret;
         }
@@ -28,19 +25,19 @@ namespace Bent.Common.IO
         {
             base.Write(buffer, offset, count);
 
-            this.NotifySubscribers(new ObservableStreamEvent(StreamOperation.Write, buffer.Skip(offset).Take(count).ToList()));
+            NotifySubscribers(new ObservableStreamEvent(StreamOperation.Write, buffer.Skip(offset).Take(count).ToList()));
         }
 
         public IDisposable Subscribe(IObserver<ObservableStreamEvent> observer)
         {
-            this.observers.Add(observer);
+            _observers.Add(observer);
 
-            return new Unsubscriber(observer, this.observers);
+            return new Unsubscriber(observer, _observers);
         }
 
         private void NotifySubscribers(ObservableStreamEvent streamEvent)
         {            
-            foreach (var observer in this.observers)
+            foreach (var observer in _observers)
             {
                 observer.OnNext(streamEvent);
             }
@@ -48,20 +45,20 @@ namespace Bent.Common.IO
 
         private class Unsubscriber : IDisposable
         {
-            private readonly IObserver<ObservableStreamEvent> observer;
-            private readonly List<IObserver<ObservableStreamEvent>> observers;
+            private readonly IObserver<ObservableStreamEvent> _observer;
+            private readonly List<IObserver<ObservableStreamEvent>> _observers;
 
             public Unsubscriber(IObserver<ObservableStreamEvent> observer, List<IObserver<ObservableStreamEvent>> observers)
             {
-                this.observer = observer;
-                this.observers = observers;
+                _observer = observer;
+                _observers = observers;
             }
 
             public void Dispose()
             {
-                lock (this.observers)
+                lock (_observers)
                 {
-                    this.observers.Remove(this.observer);
+                    _observers.Remove(_observer);
                 }
             }
         }

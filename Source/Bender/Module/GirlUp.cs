@@ -1,33 +1,30 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.Composition;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Bender.Common;
 using Bender.Configuration;
-using Newtonsoft.Json.Linq;
+using Bender.Interfaces;
 using Bender.Persistence;
+using Newtonsoft.Json.Linq;
 
 namespace Bender.Module
 {
     [Export(typeof(IModule))]
     public class GirlUp : IModule
     {
-        private static Regex regex = new Regex(@"girl\s+up\s+the\s+chat", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        private static readonly Regex Regex = new Regex(@"girl\s+up\s+the\s+chat", RegexOptions.IgnoreCase | RegexOptions.Singleline);
         
-        private Random random = new Random();
+        private readonly Random _random = new Random();
 
-        private IConfiguration config;
-        private IBackend backend;
+        private IConfiguration _config;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.config = config;
-            this.backend = backend;
+            _config = config;
+            _backend = backend;
         }
 
         public async void OnMessage(IMessage message)
@@ -36,11 +33,11 @@ namespace Bender.Module
             {
                 if (!message.IsFromMyself && !message.IsHistorical)
                 {
-                    var match = regex.Match(message.FullBody);
+                    var match = Regex.Match(message.FullBody);
 
                     if (match.Success)
                     {
-                        await backend.SendMessageAsync(message.ReplyTo, await GetRandomProgrammerGoslingUrlAsync() + " " + new String('~', 3 + random.Next(11)));
+                        await _backend.SendMessageAsync(message.ReplyTo, await GetRandomProgrammerGoslingUrlAsync() + " " + new string('~', 3 + _random.Next(11)));
                     }
                 }
             }
@@ -52,7 +49,7 @@ namespace Bender.Module
 
         private async Task<string> GetRandomProgrammerGoslingUrlAsync()
         {
-            var apiKey = this.config[Constants.ConfigKey.TumblrApiKey];
+            var apiKey = _config[Constants.ConfigKey.TumblrApiKey];
 
             var infoUrl = "http://api.tumblr.com/v2/blog/programmerryangosling.tumblr.com/info?api_key=" + HttpUtility.UrlEncode(apiKey);
 
@@ -61,7 +58,7 @@ namespace Bender.Module
 
             int posts = (JObject.Parse(await infoResponse.Content.ReadAsStringAsync()) as dynamic).response.blog.posts;
 
-            var imageUrl = "http://api.tumblr.com/v2/blog/programmerryangosling.tumblr.com/posts?limit=1&api_key=" + HttpUtility.UrlEncode(apiKey) + "&offset=" + random.Next(posts);
+            var imageUrl = "http://api.tumblr.com/v2/blog/programmerryangosling.tumblr.com/posts?limit=1&api_key=" + HttpUtility.UrlEncode(apiKey) + "&offset=" + _random.Next(posts);
             var imageResponse = await new HttpClient().GetAsync(imageUrl);
             imageResponse.EnsureSuccessStatusCode();
 

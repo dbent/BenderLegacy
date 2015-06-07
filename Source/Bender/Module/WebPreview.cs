@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.Composition;
-using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Bender.Common;
 using Bender.Configuration;
-using Newtonsoft.Json.Linq;
+using Bender.Interfaces;
 using Bender.Persistence;
+using Newtonsoft.Json.Linq;
 
 namespace Bender.Module
 {
@@ -21,18 +19,18 @@ namespace Bender.Module
     public class WebPreview : IModule
     {
         // TODO: this is a pretty restrictive regex
-        private static Regex regex = new Regex(@"^\s*(https?://\S+)\s*", RegexOptions.IgnoreCase);
+        private static readonly Regex Regex = new Regex(@"^\s*(https?://\S+)\s*", RegexOptions.IgnoreCase);
         
-        private IBackend backend;
-        private string apiEndPoint;
+        private IBackend _backend;
+        private string _apiEndPoint;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.backend = backend;
+            _backend = backend;
 
             var token = config[Constants.ConfigKey.DiffBotApiKey];
 
-            this.apiEndPoint = "http://www.diffbot.com/api/article?summary&token=" + HttpUtility.UrlEncode(token);
+            _apiEndPoint = "http://www.diffbot.com/api/article?summary&token=" + HttpUtility.UrlEncode(token);
         }
 
         public async void OnMessage(IMessage message)
@@ -45,18 +43,17 @@ namespace Bender.Module
 
                     foreach (var token in tokens)
                     {
-                        var match = regex.Match(token);
-                        if (regex.IsMatch(token))
+                        if (Regex.IsMatch(token))
                         {
                             var uri = new Uri(token);
                             if (uri.IsWellFormedOriginalString())
                             {
-                                var reply = this.MakeReply(await this.QueryAsync(uri));
+                                var reply = MakeReply(await QueryAsync(uri));
 
-                                if (!String.IsNullOrWhiteSpace(reply))
+                                if (!string.IsNullOrWhiteSpace(reply))
                                 {
                                     // TODO: gotta get new lines sorted out
-                                    await this.backend.SendMessageAsync(message.ReplyTo, reply);
+                                    await _backend.SendMessageAsync(message.ReplyTo, reply);
                                 }
                             }
                         }
@@ -71,7 +68,7 @@ namespace Bender.Module
 
         private async Task<DiffBotResponse> QueryAsync(Uri uri)
         {
-            var queryUrl = this.apiEndPoint + "&url=" + HttpUtility.UrlEncode(uri.ToString());
+            var queryUrl = _apiEndPoint + "&url=" + HttpUtility.UrlEncode(uri.ToString());
 
             var response = await new HttpClient().GetAsync(queryUrl);
             response.EnsureSuccessStatusCode();
@@ -81,16 +78,16 @@ namespace Bender.Module
             return new DiffBotResponse((string)json.title, (string)json.author,(string)json.summary);
         }
 
-        private string MakeReply(DiffBotResponse response)
+        private static string MakeReply(DiffBotResponse response)
         {
             var reply = new StringBuilder();
 
-            if (!String.IsNullOrWhiteSpace(response.Title))
+            if (!string.IsNullOrWhiteSpace(response.Title))
             {
                 reply.AppendFormat(@"""{0}""", response.Title);
             }
 
-            if(!String.IsNullOrWhiteSpace(response.Author))
+            if(!string.IsNullOrWhiteSpace(response.Author))
             {
                 reply.AppendFormat(" by {0}", response.Author);
             }
@@ -106,15 +103,15 @@ namespace Bender.Module
 
         private class DiffBotResponse
         {
-            public string Title { get; private set; }
-            public string Author { get; private set; }
-            public string Summary { get; private set;  }
+            public string Title { get; }
+            public string Author { get; }
+            public string Summary { get; }
 
             public DiffBotResponse(string title, string author, string summary)
             {
-                this.Title = title;
-                this.Author = author;
-                this.Summary = summary;
+                Title = title;
+                Author = author;
+                Summary = summary;
             }
         }
     }

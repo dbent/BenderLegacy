@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
@@ -13,48 +12,48 @@ namespace Bender.Apis.LastFm
     public class LastFmClient
     {
         private const int ResultLimit = 100;
-        public const string url = "http://ws.audioscrobbler.com/2.0/";
+        private const string Url = "http://ws.audioscrobbler.com/2.0/";
 
-        private string serviceUrl;
+        private readonly string _serviceUrl;
 
         public LastFmClient(string apiKey)
         {
-            this.serviceUrl = url + "?api_key=" + apiKey;
+            _serviceUrl = Url + "?api_key=" + apiKey;
         }
 
         public async Task<XDocument> GetHypedTracksAsync()
         {
-            return await QueryGlobalAsync(LastFmMethod.Chart_GetHypedTracks);
+            return await QueryGlobalAsync(LastFmMethod.ChartGetHypedTracks);
         }
 
         public async Task<XDocument> GetTopTracksAsync()
         {
-            return await QueryGlobalAsync(LastFmMethod.Chart_GetTopTracks);
+            return await QueryGlobalAsync(LastFmMethod.ChartGetTopTracks);
         }
 
         public async Task<XDocument> GetArtistInfoAsync(string artist)
         {
-            return await QueryArtistAsync(LastFmMethod.Artist_GetInfo, artist);
+            return await QueryArtistAsync(LastFmMethod.ArtistGetInfo, artist);
         }
 
         public async Task<XDocument> GetArtistTopTracksAsync(string artist)
         {
-            return await QueryArtistAsync(LastFmMethod.Artist_GetTopTracks, artist);
+            return await QueryArtistAsync(LastFmMethod.ArtistGetTopTracks, artist);
         }
 
         public async Task<XDocument> GetArtistTopAlbumsAsync(string artist)
         {
-            return await QueryArtistAsync(LastFmMethod.Artist_GetTopAlbums, artist);
+            return await QueryArtistAsync(LastFmMethod.ArtistGetTopAlbums, artist);
         }
 
         public async Task<XDocument> GetSimilarArtistsAsync(string artist)
         {
-            return await QueryArtistAsync(LastFmMethod.Artist_GetSimilar, artist);
+            return await QueryArtistAsync(LastFmMethod.ArtistGetSimilar, artist);
         }
 
         public async Task<XDocument> GetSimilarTracksAsync(string artist, string track)
         {
-            return await QueryTrackAsync(LastFmMethod.Track_GetSimilar, artist, track);
+            return await QueryTrackAsync(LastFmMethod.TrackGetSimilar, artist, track);
         }
 
         private async Task<XDocument> QueryArtistAsync(LastFmMethod method, string artist)
@@ -75,13 +74,10 @@ namespace Bender.Apis.LastFm
 
         private async Task<XDocument> QueryGlobalAsync(LastFmMethod method)
         {
-            var query = new Dictionary<string, object>(){
-                { "limit", ResultLimit }
-            };
             return await QueryAsync(GenerateUrl(method, new Dictionary<string, object>()));
         }
 
-        public async Task<XDocument> QueryAsync(string url)
+        private static async Task<XDocument> QueryAsync(string url)
         {
             var response = await new HttpClient().GetAsync(url);
             response.EnsureSuccessStatusCode();
@@ -92,7 +88,7 @@ namespace Bender.Apis.LastFm
             LastFmMethod method, 
             Dictionary<string, object> query)
         {
-            StringBuilder uri = new StringBuilder(this.serviceUrl);
+            var uri = new StringBuilder(_serviceUrl);
             AppendQueryString(uri, "method", GetMethodName(method));
             foreach (var kvp in query)
             {
@@ -101,7 +97,7 @@ namespace Bender.Apis.LastFm
             return uri.ToString();
         }
 
-        private string GetMethodName(LastFmMethod method)
+        private static string GetMethodName(LastFmMethod method)
         {
             var attribute = (LastFmMethodNameAttribute)method.GetType()
                 .GetMember(method.ToString()).First()
@@ -111,11 +107,11 @@ namespace Bender.Apis.LastFm
             return attribute.Value;
         }
 
-        private void AppendQueryString(StringBuilder uri, string param, string value)
+        private static void AppendQueryString(StringBuilder uri, string param, string value)
         {
-            Debug.Assert(!String.IsNullOrEmpty(param));
+            Debug.Assert(!string.IsNullOrEmpty(param));
 
-            if (!String.IsNullOrEmpty(value))
+            if (!string.IsNullOrEmpty(value))
             {
                 uri.AppendFormat("&{0}={1}", param, HttpUtility.UrlEncode(value));
             }

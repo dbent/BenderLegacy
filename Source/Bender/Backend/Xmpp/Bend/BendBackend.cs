@@ -3,49 +3,53 @@ using System.Globalization;
 using System.Net;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Bend;
-using Bend.Internal;
-using Bend.MultiUserChat;
-using Bend.Utility;
+using Bender.Bend;
+using Bender.Bend.Clients;
+using Bender.Bend.Constants;
+using Bender.Bend.Elements;
+using Bender.Bend.Extensions.MultiUserChat;
+using Bender.Bend.Streams;
+using Bender.Bend.Utility;
 using Bender.Common;
 using Bender.Configuration;
-using Bent.Common;
+using Bender.Interfaces;
+using Bender.Internal.Extensions;
 
 namespace Bender.Backend.Xmpp.Bend
 {
     internal class BendBackend : IBackend, IObserver<XElement>
     {
-        private readonly MultiObserver<MessageData> multiObserver = new MultiObserver<MessageData>();
+        private readonly MultiObserver<MessageData> _multiObserver = new MultiObserver<MessageData>();
 
-        private readonly IConfiguration configuration;
-        private readonly IXmppClient client;
-        private readonly IDisposable observableSubscription;
-        private readonly Jid jid;
+        private readonly IConfiguration _configuration;
+        private readonly IXmppClient _client;
+        private readonly IDisposable _observableSubscription;
+        private readonly Jid _jid;
 
         public BendBackend(IConfiguration configuration)
         {
-            this.configuration = configuration;
+            _configuration = configuration;
             
-            this.jid = new Jid(this.configuration.Jid);
-            this.client = new XmppClient(new XmppTcpClientStream(this.jid, this.configuration.Password, new DnsEndPoint(this.jid.Domain, 5222)));
-            this.observableSubscription = this.client.Subscribe(this);
+            _jid = Jid.Parse(_configuration.Jid);
+            _client = new XmppClient(new XmppTcpClientStream(_jid, _configuration.Password, new DnsEndPoint(_jid.Domain, 5222)));
+            _observableSubscription = _client.Subscribe(this);
         }
 
         public async Task ConnectAsync()
         {
             await Task.Run(() =>
                 {
-                    this.client.Connect();
-                    foreach (var room in this.configuration.Rooms)
+                    _client.Connect();
+                    foreach (var room in _configuration.Rooms)
                     {
-                        this.client.MultiUserChat().JoinRoom(new Jid(room), this.configuration.Name);
+                        _client.MultiUserChat().JoinRoom(Jid.Parse(room), _configuration.Name);
                     }
                 });
         }
 
         public async Task DisconnectAsync()
         {
-            await Task.Run(() => this.client.Disconnect());
+            await Task.Run(() => _client.Disconnect());
         }
 
         public async Task SendMessageAsync(IAddress address, string body)
@@ -55,31 +59,31 @@ namespace Bender.Backend.Xmpp.Bend
                     var xAddress = address as Address;
                     if (xAddress != null)
                     {
-                        this.client.SendMessage(xAddress.Jid, xAddress.MessageType, new Automatic<CultureInfo>(), new Body(body, new Automatic<CultureInfo>(null)).AsEnumerable());
+                        _client.Send(xAddress.Jid, xAddress.MessageType, new Automatic<CultureInfo>(), new Body(body, new Automatic<CultureInfo>(null)).AsEnumerable());
                     }
                 });
         }
 
         public void Dispose()
         {
-            this.client.Dispose();
-            this.observableSubscription.Dispose();
+            _client.Dispose();
+            _observableSubscription.Dispose();
             //this.multiObserver.OnCompleted(); // TODO: need to make sure we don't send OnCompleted twice
         }
 
         public IDisposable Subscribe(IObserver<MessageData> observer)
         {
-            return this.multiObserver.Add(observer);
+            return _multiObserver.Add(observer);
         }
 
         public void OnCompleted()
         {
-            this.multiObserver.OnCompleted();
+            _multiObserver.OnCompleted();
         }
 
         public void OnError(Exception error)
         {
-            this.multiObserver.OnError(error);
+            _multiObserver.OnError(error);
         }
 
         public void OnNext(XElement value)
@@ -95,20 +99,20 @@ namespace Bender.Backend.Xmpp.Bend
                     if (isTypeChat || isTypeGroupChat)
                     {
                         var body = value.Element(ClientNamespace.Body);
-                        if (body.IsNotNull())
+                        if (body != null)
                         {
                             var from = value.Attribute("from");
 
-                            if (from.IsNotNull())
+                            if (from != null)
                             {
-                                var fromJid = new Jid(from.Value);
+                                var fromJid = Jid.Parse(from.Value);
 
-                                this.multiObserver.OnNext(new MessageData(
+                                _multiObserver.OnNext(new MessageData(
                                     replyTo: new Address(isTypeChat ? fromJid : fromJid.Bare, isTypeChat ? MessageType.Chat : MessageType.GroupChat),
                                     senderAddress: new Address(fromJid, MessageType.Chat),
                                     senderName: isTypeChat ? fromJid.Local : fromJid.Resource,
                                     body: body.Value,
-                                    isFromMyself: isTypeChat ? string.Equals(fromJid.Bare, this.jid.Bare) : String.Equals(fromJid.Resource, this.configuration.Name, StringComparison.OrdinalIgnoreCase),
+                                    isFromMyself: isTypeChat ? Equals(fromJid.Bare, _jid.Bare) : string.Equals(fromJid.Resource, _configuration.Name, StringComparison.OrdinalIgnoreCase),
                                     isHistorical: value.Element(DelayNamespace.Delay) != null,
                                     isPrivate: isTypeChat
                                 ));
@@ -126,8 +130,8 @@ namespace Bender.Backend.Xmpp.Bend
 
             public Address(Jid jid, MessageType messageType)
             {
-                this.Jid = jid;
-                this.MessageType = messageType;
+                Jid = jid;
+                MessageType = messageType;
             }
         }
     }

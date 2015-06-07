@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Composition;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel.Composition;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
 using Bender.Configuration;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender.Module
@@ -14,17 +10,17 @@ namespace Bender.Module
     [Export(typeof(IModule))]
     public class Wikipedia : IModule
     {
-        private static Regex regexWiki = new Regex(@"^\s*(wiki|wikipedia)\s+(.+?)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex RegexWiki = new Regex(@"^\s*(wiki|wikipedia)\s+(.+?)\s*$", RegexOptions.IgnoreCase);
         
-        private Regex regexAlias;
-        private IBackend backend;
+        private Regex _regexAlias;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.backend = backend;
-            if (!String.IsNullOrEmpty(config[Bender.Common.Constants.ConfigKey.WikipediaAlias]))
+            _backend = backend;
+            if (!string.IsNullOrEmpty(config[Constants.ConfigKey.WikipediaAlias]))
             {
-                this.regexAlias = new Regex(String.Format(@"^\s*{0},?\s+(.+?)\s*$", config[Bender.Common.Constants.ConfigKey.WikipediaAlias]), RegexOptions.IgnoreCase);
+                _regexAlias = new Regex($@"^\s*{config[Constants.ConfigKey.WikipediaAlias]},?\s+(.+?)\s*$", RegexOptions.IgnoreCase);
             }
         }
 
@@ -39,20 +35,18 @@ namespace Bender.Module
             {
                 if (message.IsRelevant)
                 {
-                    var match = regexWiki.Match(message.Body);
+                    var match = RegexWiki.Match(message.Body);
                     if (match.Success)
                     {
-                        this.backend.SendMessageAsync(message.ReplyTo, "http://en.wikipedia.org/wiki/" + HttpUtility.UrlEncode(match.Groups[2].Value.Replace(' ', '_')));
-                        return;
+                        _backend.SendMessageAsync(message.ReplyTo, "http://en.wikipedia.org/wiki/" + HttpUtility.UrlEncode(match.Groups[2].Value.Replace(' ', '_')));
                     }
                 }
-                else if (regexAlias != null)
+                else if (_regexAlias != null)
                 {
-                    var match = regexAlias.Match(message.FullBody);
+                    var match = _regexAlias.Match(message.FullBody);
                     if (match.Success)
                     {
-                        this.backend.SendMessageAsync(message.ReplyTo, "http://en.wikipedia.org/wiki/" + HttpUtility.UrlEncode(match.Groups[1].Value.Replace(' ', '_')));
-                        return;
+                        _backend.SendMessageAsync(message.ReplyTo, "http://en.wikipedia.org/wiki/" + HttpUtility.UrlEncode(match.Groups[1].Value.Replace(' ', '_')));
                     }
                 }
             }

@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Bender.Backend.Xmpp;
+﻿using System.Collections.Generic;
+using Bender.Interfaces;
 using Bender.Module;
 using Bender.Persistence;
 

@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using Bender.Module;
 
 namespace Bender
@@ -15,19 +11,14 @@ namespace Bender
     {
 #pragma warning disable 0649
         [ImportMany(typeof(IModule), AllowRecomposition = true)]
-        private IEnumerable<IModule> importedModules;
+        private IEnumerable<IModule> _importedModules;
 #pragma warning restore 0649
-        private List<IModule> loadedModules;
-        private IReadOnlyList<IModule> readOnlyModules;
-        private IEnumerable<string> moduleNames;
-        private FileSystemWatcher watcher;
-        private DirectoryCatalog dirCatalog;
-        private CompositionContainer container;
-
-        public ModuleResolver(string moduleName, DirectoryInfo directory = null)
-            : this(Enumerable.Repeat(moduleName, 1), directory)
-        {
-        }
+        private readonly List<IModule> _loadedModules;
+        private readonly IReadOnlyList<IModule> _readOnlyModules;
+        private readonly IEnumerable<string> _moduleNames;
+        private FileSystemWatcher _watcher;
+        private DirectoryCatalog _dirCatalog;
+        private readonly CompositionContainer container;
 
         public ModuleResolver(IEnumerable<string> moduleNames, DirectoryInfo directory = null)
         {
@@ -41,42 +32,42 @@ namespace Bender
             container = new CompositionContainer(aggCatalog);
             container.ComposeParts(this);
 
-            this.moduleNames = moduleNames;
-            loadedModules = new List<IModule>();
+            _moduleNames = moduleNames;
+            _loadedModules = new List<IModule>();
             FilterModules();
-            readOnlyModules = loadedModules.AsReadOnly();
+            _readOnlyModules = _loadedModules.AsReadOnly();
         }
 
         public IEnumerable<IModule> GetModules()
         {
-            return readOnlyModules;
+            return _readOnlyModules;
         }
         
         private void WatchForAssemblies(DirectoryInfo directory, AggregateCatalog aggCatalog)
         {
-            dirCatalog = new DirectoryCatalog(directory.FullName);
-            aggCatalog.Catalogs.Add(dirCatalog);
+            _dirCatalog = new DirectoryCatalog(directory.FullName);
+            aggCatalog.Catalogs.Add(_dirCatalog);
 
-            watcher = new FileSystemWatcher(directory.FullName, "*.dll");
-            watcher.Created += OnAssemblyChanged;
-            watcher.Changed += OnAssemblyChanged;
-            watcher.Deleted += OnAssemblyChanged;
-            watcher.EnableRaisingEvents = true;
+            _watcher = new FileSystemWatcher(directory.FullName, "*.dll");
+            _watcher.Created += OnAssemblyChanged;
+            _watcher.Changed += OnAssemblyChanged;
+            _watcher.Deleted += OnAssemblyChanged;
+            _watcher.EnableRaisingEvents = true;
         }
 
         private void OnAssemblyChanged(object sender, FileSystemEventArgs e)
         {
-            dirCatalog.Refresh();
+            _dirCatalog.Refresh();
             FilterModules();
         }
 
         public void FilterModules()
         {
-            foreach (var m in importedModules)
+            foreach (var m in _importedModules)
             {
-                if (moduleNames.Contains(m.GetType().Name) && !loadedModules.Contains(m))
+                if (_moduleNames.Contains(m.GetType().Name) && !_loadedModules.Contains(m))
                 {
-                    loadedModules.Add(m);
+                    _loadedModules.Add(m);
                 }
             }
         }

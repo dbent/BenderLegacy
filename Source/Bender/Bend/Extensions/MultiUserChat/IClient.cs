@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Bend;
-
-namespace Bend.MultiUserChat
+﻿namespace Bender.Bend.Extensions.MultiUserChat
 {
     public interface IClient
     {

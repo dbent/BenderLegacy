@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bender.Apis.LastFm;
 using Bender.Configuration;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender.Module
@@ -20,23 +21,23 @@ namespace Bender.Module
     {
         #region Regular Expressions
 
-        private static Regex musicRegex = new Regex(@"^\s*music\s+(.+?)\s*\.?\s*$", RegexOptions.IgnoreCase);
-        private static Regex similarTrackRegex = new Regex(@"^\s*similar\s+to\s+""(.+)""\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
-        private static Regex similarArtistRegex = new Regex(@"^\s*similar\s+to\s+(.+)\s*$", RegexOptions.IgnoreCase);
-        private static Regex discoveryChainArtistRegex = new Regex(@"^\s*discovery\s+(.+)\s*$", RegexOptions.IgnoreCase);
-        private static Regex discoveryChainTrackRegex = new Regex(@"^\s*discovery\s+""(.+)""\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
-        private static Regex hypedTracksRegex = new Regex(@"^\s*hyped\s+tracks\s*$", RegexOptions.IgnoreCase);
-        private static Regex topTracksRegex = new Regex(@"^\s*top\s+tracks\s*$", RegexOptions.IgnoreCase);
-        private static Regex topTracksByArtistRegex = new Regex(@"^\s*top\s+tracks\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
-        private static Regex topAlbumsByArtistRegex = new Regex(@"^\s*top\s+albums\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
-        private static Regex helpRegex = new Regex(@"^\s*help\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex MusicRegex = new Regex(@"^\s*music\s+(.+?)\s*\.?\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex SimilarTrackRegex = new Regex(@"^\s*similar\s+to\s+""(.+)""\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex SimilarArtistRegex = new Regex(@"^\s*similar\s+to\s+(.+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex DiscoveryChainArtistRegex = new Regex(@"^\s*discovery\s+(.+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex DiscoveryChainTrackRegex = new Regex(@"^\s*discovery\s+""(.+)""\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex HypedTracksRegex = new Regex(@"^\s*hyped\s+tracks\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex TopTracksRegex = new Regex(@"^\s*top\s+tracks\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex TopTracksByArtistRegex = new Regex(@"^\s*top\s+tracks\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex TopAlbumsByArtistRegex = new Regex(@"^\s*top\s+albums\s+by\s+(.+)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex HelpRegex = new Regex(@"^\s*help\s*$", RegexOptions.IgnoreCase);
 
         #endregion
 
         #region Fields
 
-        private IBackend backend;
-        private IConfiguration config;
+        private IBackend _backend;
+        private IConfiguration _config;
 
         #endregion
 
@@ -44,8 +45,8 @@ namespace Bender.Module
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.config = config;
-            this.backend = backend;
+            _config = config;
+            _backend = backend;
         }
 
         public void OnMessage(IMessage message)
@@ -63,7 +64,7 @@ namespace Bender.Module
             {
                 if (message.IsRelevant && !message.IsHistorical)
                 {
-                    var musicMatch = musicRegex.Match(message.Body);
+                    var musicMatch = MusicRegex.Match(message.Body);
                     var musicBody = musicMatch.Groups[1].Value;
                     if (musicMatch.Success)
                     {
@@ -87,13 +88,13 @@ namespace Bender.Module
 
         private async Task<bool> TestSimilarTracks(IMessage message, string musicBody)
         {
-            var similarTrackMatch = similarTrackRegex.Match(musicBody);
+            var similarTrackMatch = SimilarTrackRegex.Match(musicBody);
             if (similarTrackMatch.Success)
             {
-                string track = similarTrackMatch.Groups[1].Value;
-                string artist = similarTrackMatch.Groups[2].Value;
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetSimilarTracksAsync(artist, track);
-                await backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateSimilarTracksResponse(xml));
+                var track = similarTrackMatch.Groups[1].Value;
+                var artist = similarTrackMatch.Groups[2].Value;
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetSimilarTracksAsync(artist, track);
+                await _backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateSimilarTracksResponse(xml));
                 return true;
             }
             return false;
@@ -101,12 +102,12 @@ namespace Bender.Module
 
         private async Task<bool> TestSimilarArtists(IMessage message, string body)
         {
-            var similarArtistMatch = similarArtistRegex.Match(body);
+            var similarArtistMatch = SimilarArtistRegex.Match(body);
             if (similarArtistMatch.Success)
             {
-                string artist = similarArtistMatch.Groups[1].Value;
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetSimilarArtistsAsync(artist);
-                await backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateSimilarArtistsResponse(xml));
+                var artist = similarArtistMatch.Groups[1].Value;
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetSimilarArtistsAsync(artist);
+                await _backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateSimilarArtistsResponse(xml));
                 return true;
             }
             return false;
@@ -114,14 +115,14 @@ namespace Bender.Module
 
         private async Task<bool> TestTrackDiscovery(IMessage message, string body)
         {
-            var discoveryChainTrackMatch = discoveryChainTrackRegex.Match(body);
+            var discoveryChainTrackMatch = DiscoveryChainTrackRegex.Match(body);
             if (discoveryChainTrackMatch.Success)
             {
-                string track = discoveryChainTrackMatch.Groups[1].Value;
-                string artist = discoveryChainTrackMatch.Groups[2].Value;
-                await backend.SendMessageAsync(message.ReplyTo, "Looking for cool stuff. Please be patient.");
-                List<Track> discovered = await DiscoveryChainTrackLoop(artist, track, 10);
-                await backend.SendMessageAsync(message.ReplyTo, "Discovery chain:\r\n" + String.Join(" ->\r\n", discovered));
+                var track = discoveryChainTrackMatch.Groups[1].Value;
+                var artist = discoveryChainTrackMatch.Groups[2].Value;
+                await _backend.SendMessageAsync(message.ReplyTo, "Looking for cool stuff. Please be patient.");
+                var discovered = await DiscoveryChainTrackLoop(artist, track, 10);
+                await _backend.SendMessageAsync(message.ReplyTo, "Discovery chain:\r\n" + String.Join(" ->\r\n", discovered));
                 return true;
             }
             return false;
@@ -129,13 +130,13 @@ namespace Bender.Module
 
         private async Task<bool> TestArtistDiscovery(IMessage message, string body)
         {
-            var discoveryChainArtistMatch = discoveryChainArtistRegex.Match(body);
+            var discoveryChainArtistMatch = DiscoveryChainArtistRegex.Match(body);
             if (discoveryChainArtistMatch.Success)
             {
-                string artist = discoveryChainArtistMatch.Groups[1].Value;
-                await backend.SendMessageAsync(message.ReplyTo, "Looking for cool stuff. Please be patient.");
-                List<Artist> discovered = await DiscoveryChainArtistLoop(artist, 10);
-                await backend.SendMessageAsync(message.ReplyTo, "Discovery chain: " + String.Join(" -> ", discovered));
+                var artist = discoveryChainArtistMatch.Groups[1].Value;
+                await _backend.SendMessageAsync(message.ReplyTo, "Looking for cool stuff. Please be patient.");
+                var discovered = await DiscoveryChainArtistLoop(artist, 10);
+                await _backend.SendMessageAsync(message.ReplyTo, "Discovery chain: " + String.Join(" -> ", discovered));
                 return true;
             }
             return false;
@@ -143,10 +144,10 @@ namespace Bender.Module
 
         private async Task<bool> TestHypedTracks(IMessage message, string body)
         {
-            if (hypedTracksRegex.Match(body).Success)
+            if (HypedTracksRegex.Match(body).Success)
             {
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetHypedTracksAsync();
-                await backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateHypedTracksResponse(xml));
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetHypedTracksAsync();
+                await _backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateHypedTracksResponse(xml));
                 return true;
             }
             return false;
@@ -154,10 +155,10 @@ namespace Bender.Module
 
         private async Task<bool> TestTopTracks(IMessage message, string body)
         {
-            if (topTracksRegex.Match(body).Success)
+            if (TopTracksRegex.Match(body).Success)
             {
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetTopTracksAsync();
-                await backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateTopTracksResponse(xml));
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetTopTracksAsync();
+                await _backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateTopTracksResponse(xml));
                 return true;
             }
             return false;
@@ -165,11 +166,11 @@ namespace Bender.Module
 
         private async Task<bool> TestTopTracksByArtist(IMessage message, string body)
         {
-            if (topTracksByArtistRegex.Match(body).Success)
+            if (TopTracksByArtistRegex.Match(body).Success)
             {
-                string artist = topTracksByArtistRegex.Match(body).Groups[1].Value;
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetArtistTopTracksAsync(artist);
-                await backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateTopTracksResponse(xml, artist));
+                var artist = TopTracksByArtistRegex.Match(body).Groups[1].Value;
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetArtistTopTracksAsync(artist);
+                await _backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateTopTracksResponse(xml, artist));
                 return true;
             }
             return false;
@@ -177,11 +178,11 @@ namespace Bender.Module
 
         private async Task<bool> TestTopAlbumsByArtist(IMessage message, string body)
         {
-            if (topAlbumsByArtistRegex.Match(body).Success)
+            if (TopAlbumsByArtistRegex.Match(body).Success)
             {
-                string artist = topAlbumsByArtistRegex.Match(body).Groups[1].Value;
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetArtistTopAlbumsAsync(artist);
-                await backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateTopAlbumsResponse(xml, artist, false, 10));
+                var artist = TopAlbumsByArtistRegex.Match(body).Groups[1].Value;
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetArtistTopAlbumsAsync(artist);
+                await _backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateTopAlbumsResponse(xml, artist, false, 10));
                 return true;
             }
             return false;
@@ -189,10 +190,10 @@ namespace Bender.Module
 
         private async Task<bool> TestHelp(IMessage message, string body)
         {
-            var helpMatch = helpRegex.Match(body);
+            var helpMatch = HelpRegex.Match(body);
             if (helpMatch.Success)
             {
-                await backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateHelpResponse(config.Name));
+                await _backend.SendMessageAsync(message.ReplyTo, LastFmResponse.CreateHelpResponse(_config.Name));
                 return true;
             }
             return false;
@@ -209,10 +210,10 @@ namespace Bender.Module
 
             var discovered = new List<Track>();
             var originalTrackName = new Track(artist, track);
-            for (int i = 0; i < iterations; i++)
+            for (var i = 0; i < iterations; i++)
             {
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetSimilarTracksAsync(originalTrackName.Artist, originalTrackName.TrackName);
-                List<Track> similar = LastFmXmlParser.GetSimilarTracks(xml, out originalTrackName, true, 1);
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetSimilarTracksAsync(originalTrackName.Artist, originalTrackName.TrackName);
+                var similar = LastFmXmlParser.GetSimilarTracks(xml, out originalTrackName, true, 1);
 
                 if (i == 0)
                 {
@@ -239,11 +240,11 @@ namespace Bender.Module
 
             var discovered = new List<Artist>();
 
-            string originalArtistName = artist;
-            for (int i = 0; i < iterations; i++)
+            var originalArtistName = artist;
+            for (var i = 0; i < iterations; i++)
             {
-                XDocument xml = await new LastFmClient(this.config[Common.Constants.ConfigKey.LastFmApiKey]).GetSimilarArtistsAsync(originalArtistName);
-                List<Artist> similar = LastFmXmlParser.GetSimilarArtistNames(xml, out originalArtistName, true, 1);
+                var xml = await new LastFmClient(_config[Constants.ConfigKey.LastFmApiKey]).GetSimilarArtistsAsync(originalArtistName);
+                var similar = LastFmXmlParser.GetSimilarArtistNames(xml, out originalArtistName, true, 1);
 
                 if (i == 0)
                 {
@@ -270,50 +271,50 @@ namespace Bender.Module
 
         private class Artist
         {
-            public string Name { get; private set; }
+            public string Name { get; }
 
             public Artist(string name)
             {
-                this.Name = name;
+                Name = name;
             }
 
             public override string ToString()
             {
-                return this.Name;
+                return Name;
             }
         }
 
         private class Track
         {
-            public string Artist { get; private set; }
-            public string TrackName { get; private set; }
+            public string Artist { get; }
+            public string TrackName { get; }
 
             public Track(string artist, string trackName)
             {
-                this.Artist = artist;
-                this.TrackName = trackName;
+                Artist = artist;
+                TrackName = trackName;
             }
 
             public override string ToString()
             {
-                return String.Format("\"{0}\" by {1}", TrackName, Artist);
+                return $"\"{TrackName}\" by {Artist}";
             }
         }
 
         private class Album
         {
-            public string Artist { get; private set; }
-            public string AlbumName { get; private set; }
+            public string Artist { get; }
+            public string AlbumName { get; }
 
             public Album(string artist, string albumName)
             {
-                this.Artist = artist;
-                this.AlbumName = albumName;
+                Artist = artist;
+                AlbumName = albumName;
             }
 
             public override string ToString()
             {
-                return String.Format("\"{0}\" by {1}", AlbumName, Artist);
+                return $"\"{AlbumName}\" by {Artist}";
             }
         }
 
@@ -328,13 +329,8 @@ namespace Bender.Module
                     .Attribute("artist").Value;
                 
                 var r = new Random();
-                var names = new List<Artist>();
-                foreach (var item in xml.Descendants("artist").OrderBy(x => isRandomized ? r.Next() : 0).Take(limit))
-                {
-                    names.Add(new Artist(item.Element("name").Value));
-                }
 
-                return names;
+                return xml.Descendants("artist").OrderBy(x => isRandomized ? r.Next() : 0).Take(limit).Select(item => new Artist(item.Element("name").Value)).ToList();
             }
 
             public static List<Track> GetSimilarTracks(XDocument xml, out Track originalTrackName, bool isRandomized = false, int limit = 25)
@@ -353,29 +349,15 @@ namespace Bender.Module
             public static List<Track> GetTracks(XDocument xml, bool isRandomized = true, int limit = 10)
             {
                 var r = new Random();
-                var tracks = new List<Track>();
-                foreach (var item in xml.Descendants("track").OrderBy(x => isRandomized ? r.Next() : 0).Take(limit))
-                {
-                    tracks.Add(new Track(
-                        item.Element("artist").Element("name").Value,
-                        item.Element("name").Value));
-                }
 
-                return tracks;
+                return xml.Descendants("track").OrderBy(x => isRandomized ? r.Next() : 0).Take(limit).Select(item => new Track(item.Element("artist").Element("name").Value, item.Element("name").Value)).ToList();
             }
 
             public static List<Album> GetAlbums(XDocument xml, bool isRandomized = false, int limit = 10)
             {
                 var r = new Random();
-                var albums = new List<Album>();
-                foreach (var item in xml.Descendants("album").OrderBy(x => isRandomized ? r.Next() : 0).Take(limit))
-                {
-                    albums.Add(new Album(
-                        item.Element("artist").Element("name").Value,
-                        item.Element("name").Value));
-                }
 
-                return albums;
+                return xml.Descendants("album").OrderBy(x => isRandomized ? r.Next() : 0).Take(limit).Select(item => new Album(item.Element("artist").Element("name").Value, item.Element("name").Value)).ToList();
             }
         }
 
@@ -384,7 +366,7 @@ namespace Bender.Module
             public static string CreateSimilarArtistsResponse(XDocument xml, bool isRandomized = true, int limit = 10)
             {
                 string originalArtistName;
-                List<Artist> similarArtists = LastFmXmlParser.GetSimilarArtistNames(xml, out originalArtistName, isRandomized, limit);
+                var similarArtists = LastFmXmlParser.GetSimilarArtistNames(xml, out originalArtistName, isRandomized, limit);
 
                 var response = new StringBuilder();
                 response
@@ -400,54 +382,54 @@ namespace Bender.Module
             public static string CreateSimilarTracksResponse(XDocument xml, bool isRandomized = false, int limit = 25)
             {
                 Track originalTrack;
-                List<Track> similarTrackNames = LastFmXmlParser.GetSimilarTracks(xml, out originalTrack, isRandomized, limit);
+                var similarTrackNames = LastFmXmlParser.GetSimilarTracks(xml, out originalTrack, isRandomized, limit);
 
                 var response = new StringBuilder();
                 response
                     .Append("Similar songs to ")
                     .Append(originalTrack)
                     .Append(":\r\n")
-                    .Append(String.Join("\r\n", similarTrackNames));
+                    .Append(string.Join("\r\n", similarTrackNames));
 
                 return response.ToString();
             }
 
             public static string CreateHypedTracksResponse(XDocument xml, bool isRandomized = false, int limit = 25)
             {
-                List<Track> trackNames = LastFmXmlParser.GetTracks(xml, isRandomized, limit);
+                var trackNames = LastFmXmlParser.GetTracks(xml, isRandomized, limit);
 
                 var response = new StringBuilder();
                 response
                     .Append("Hyped tracks:\r\n")
-                    .Append(String.Join("\r\n", trackNames));
+                    .Append(string.Join("\r\n", trackNames));
 
                 return response.ToString();
             }
 
             public static string CreateTopTracksResponse(XDocument xml, string artist = null, bool isRandomized = false, int limit = 25)
             {
-                List<Track> trackNames = LastFmXmlParser.GetTracks(xml, isRandomized, limit);
+                var trackNames = LastFmXmlParser.GetTracks(xml, isRandomized, limit);
 
                 var response = new StringBuilder();
                 response
                     .Append("Top tracks")
-                    .Append(String.IsNullOrEmpty(artist) ? String.Empty : " by " + artist)
+                    .Append(string.IsNullOrEmpty(artist) ? string.Empty : " by " + artist)
                     .Append(":\r\n")
-                    .Append(String.Join("\r\n", trackNames));
+                    .Append(string.Join("\r\n", trackNames));
 
                 return response.ToString();
             }
 
             public static string CreateTopAlbumsResponse(XDocument xml, string artist = null, bool isRandomized = false, int limit = 25)
             {
-                List<Album> albumNames = LastFmXmlParser.GetAlbums(xml, isRandomized, limit);
+                var albumNames = LastFmXmlParser.GetAlbums(xml, isRandomized, limit);
 
                 var response = new StringBuilder();
                 response
                     .Append("Top albums")
-                    .Append(String.IsNullOrEmpty(artist) ? String.Empty : " by " + artist)
+                    .Append(string.IsNullOrEmpty(artist) ? string.Empty : " by " + artist)
                     .Append(":\r\n")
-                    .Append(String.Join("\r\n", albumNames));
+                    .Append(string.Join("\r\n", albumNames));
 
                 return response.ToString();
             }

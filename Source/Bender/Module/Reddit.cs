@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bender.Configuration;
-using Bender.Module;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender.Module
@@ -17,16 +15,16 @@ namespace Bender.Module
     [Export(typeof(IModule))]
     public class Reddit : IModule
     {
-        private static Regex regex = new Regex(@"^\s*reddit(\s+(.+))?\s*$", RegexOptions.IgnoreCase);
-        private static Regex ultLinkRegex = new Regex(@"<br/>\s<a href=""(.+)"">\[link\]", RegexOptions.IgnoreCase);
+        private static readonly Regex Regex = new Regex(@"^\s*reddit(\s+(.+))?\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex UltLinkRegex = new Regex(@"<br/>\s<a href=""(.+)"">\[link\]", RegexOptions.IgnoreCase);
 
-        private Dictionary<string, HashSet<string>> seenLinks = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase); // TODO: persist
+        private readonly Dictionary<string, HashSet<string>> _seenLinks = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase); // TODO: persist
 
-        private IBackend backend;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.backend = backend;
+            _backend = backend;
         }
 
         public async void OnMessage(IMessage message)
@@ -35,18 +33,19 @@ namespace Bender.Module
             {
                 if (message.IsRelevant)
                 {
-                    Match match = regex.Match(message.Body);
+                    var match = Regex.Match(message.Body);
                     if (match.Success)
                     {
                         var subreddit = match.Groups[2].Value;
-                        string url = (subreddit == String.Empty) ? "http://www.reddit.com/.rss" : String.Format("http://www.reddit.com/r/{0}.rss", subreddit);
+                        var url = (subreddit == string.Empty) ? "http://www.reddit.com/.rss" :
+                            $"http://www.reddit.com/r/{subreddit}.rss";
 
                         var response = await new HttpClient().GetAsync(url);
-                        if (!String.IsNullOrEmpty(subreddit) && (
-                                response.StatusCode == System.Net.HttpStatusCode.NotFound ||
-                                response.RequestMessage.RequestUri.ToString().ToLowerInvariant() != url.ToString().ToLowerInvariant()))
+                        if (!string.IsNullOrEmpty(subreddit) && (
+                                response.StatusCode == HttpStatusCode.NotFound ||
+                                !string.Equals(response.RequestMessage.RequestUri.ToString(), url, StringComparison.InvariantCultureIgnoreCase)))
                         {
-                            await this.backend.SendMessageAsync(message.ReplyTo, "Sorry, couldn't find your subreddit. :-/");
+                            await _backend.SendMessageAsync(message.ReplyTo, "Sorry, couldn't find your subreddit. :-/");
                             return;
                         }
                         response.EnsureSuccessStatusCode();
@@ -54,9 +53,9 @@ namespace Bender.Module
                         var body = await response.Content.ReadAsStringAsync();
                         var xml = XDocument.Parse(body);
 
-                        if (!seenLinks.ContainsKey(subreddit))
+                        if (!_seenLinks.ContainsKey(subreddit))
                         {
-                            seenLinks[subreddit] = new HashSet<string>();
+                            _seenLinks[subreddit] = new HashSet<string>();
                         }
 
                         var messages = new List<string>();
@@ -73,9 +72,9 @@ namespace Bender.Module
                                 var link = linkEl.Value;
                                 var ultLink = GetUltimateLink(descEl.Value);
 
-                                if (!this.seenLinks[subreddit].Contains(link))
+                                if (!_seenLinks[subreddit].Contains(link))
                                 {
-                                    this.seenLinks[subreddit].Add(link);
+                                    _seenLinks[subreddit].Add(link);
 
                                     messages.Add(GetMessage(title, link, ultLink));
                                 }
@@ -86,17 +85,18 @@ namespace Bender.Module
                         {
                             if (messages.Count > 3)
                             {
-                                await this.backend.SendMessageAsync(message.ReplyTo, String.Format("There were {0} new stories, just going to give you the top 3.", messages.Count));
+                                await _backend.SendMessageAsync(message.ReplyTo,
+                                    $"There were {messages.Count} new stories, just going to give you the top 3.");
                             }
 
                             foreach (var m in messages.Take(3))
                             {
-                                await this.backend.SendMessageAsync(message.ReplyTo, m);
+                                await _backend.SendMessageAsync(message.ReplyTo, m);
                             }
                         }
                         else
                         {
-                            await this.backend.SendMessageAsync(message.ReplyTo, "Sorry, nothing new. :-/");
+                            await _backend.SendMessageAsync(message.ReplyTo, "Sorry, nothing new. :-/");
                         }
                     }
                 }
@@ -107,17 +107,15 @@ namespace Bender.Module
             }
         }
 
-        private string GetUltimateLink(string descriptionValue)
+        private static string GetUltimateLink(string descriptionValue)
         {
-            var match = ultLinkRegex.Match(descriptionValue);
-            if (match.Success) return match.Groups[1].Value;
-            return null;
+            var match = UltLinkRegex.Match(descriptionValue);
+            return match.Success ? match.Groups[1].Value : null;
         }
 
-        private string GetMessage(string title, string link, string ultLink)
+        private static string GetMessage(string title, string link, string ultLink)
         {
-            return String.Format("{0}\n{1}", title,
-                (String.IsNullOrEmpty(ultLink) ? link : ultLink));
+            return $"{title}\n{(string.IsNullOrEmpty(ultLink) ? link : ultLink)}";
         }
     }
 }

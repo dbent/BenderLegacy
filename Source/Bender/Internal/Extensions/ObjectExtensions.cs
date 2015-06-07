@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace Bend.Internal
+namespace Bender.Internal.Extensions
 {
     internal static class ObjectExtensions
     {
@@ -13,7 +12,7 @@ namespace Bend.Internal
 
         public static bool Is<T, U>(this T self, U value) where T : U
         {
-            return Object.Equals(self, value);
+            return Equals(self, value);
         }
 
         public static bool Is<T, U>(this T self, params U[] values)  where T : U
@@ -21,14 +20,9 @@ namespace Bend.Internal
             return values.Contains(self);
         }
 
-        public static bool IsNull(this object obj)
-        {
-            return Object.ReferenceEquals(obj, null);
-        }
-
         public static bool IsNotNull(this object obj)
         {
-            return !obj.IsNull();
+            return obj != null;
         }
     }
 }

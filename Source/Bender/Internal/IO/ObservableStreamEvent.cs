@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace Bent.Common.IO
+namespace Bender.Internal.IO
 {
     public sealed class ObservableStreamEvent
     {
@@ -13,8 +9,8 @@ namespace Bent.Common.IO
 
         public ObservableStreamEvent(StreamOperation operation, IEnumerable<byte> data)
         {
-            this.Operation = operation;
-            this.Data = data;
+            Operation = operation;
+            Data = data;
         }
     }
 }

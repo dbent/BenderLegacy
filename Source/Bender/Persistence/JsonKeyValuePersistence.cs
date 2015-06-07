@@ -1,54 +1,49 @@
-﻿using Bender.Configuration;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Bender.Configuration;
+using Newtonsoft.Json;
 
 namespace Bender.Persistence
 {
     internal class JsonKeyValuePersistence : IKeyValuePersistence
     {
-        private readonly string filePath;
-        private readonly ConcurrentDictionary<string, string> storage;
-        private readonly object saveLock = new object();
+        private readonly string _filePath;
+        private readonly ConcurrentDictionary<string, string> _storage;
+        private readonly object _saveLock = new object();
 
         public JsonKeyValuePersistence(IConfiguration config)
         {
-            this.filePath = Path.Combine(config.ModulesDirectoryPath, "storage.json");
+            _filePath = Path.Combine(config.ModulesDirectoryPath, "storage.json");
 
-            if (File.Exists(filePath))
+            if (File.Exists(_filePath))
             {
-                this.storage = JsonConvert.DeserializeObject<ConcurrentDictionary<string, string>>(File.ReadAllText(filePath));
+                _storage = JsonConvert.DeserializeObject<ConcurrentDictionary<string, string>>(File.ReadAllText(_filePath));
             }
             else
             {
-                this.storage = new ConcurrentDictionary<string, string>();
+                _storage = new ConcurrentDictionary<string, string>();
 
-                this.Save();
+                Save();
             }
         }
 
         public string Get(string key)
         {
-            return this.storage[key];
+            return _storage[key];
         }
 
         public void Set(string key, string value)
         {
-            this.storage[key] = value;
+            _storage[key] = value;
             
-            this.Save();
+            Save();
         }
 
         private void Save()
         {
-            lock(this.saveLock)
+            lock(_saveLock)
             {
-                File.WriteAllText(filePath, JsonConvert.SerializeObject(this.storage));
+                File.WriteAllText(_filePath, JsonConvert.SerializeObject(_storage));
             }
         }
     }

@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Composition;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel.Composition;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Web;
 using Bender.Configuration;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender.Module
@@ -14,14 +10,14 @@ namespace Bender.Module
     [Export(typeof(IModule))]
     public class Google : IModule
     {
-        private static Regex regexGoogle = new Regex(@"^\s*google\s+(.+?)\s*$", RegexOptions.IgnoreCase);
-        private static Regex regexLucky = new Regex(@"^\s*i'?m\s+feeling\s+lucky\s+(.+?)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex RegexGoogle = new Regex(@"^\s*google\s+(.+?)\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex RegexLucky = new Regex(@"^\s*i'?m\s+feeling\s+lucky\s+(.+?)\s*$", RegexOptions.IgnoreCase);
 
-        private IBackend backend;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.backend = backend;
+            _backend = backend;
         }
 
         public void OnMessage(IMessage message)
@@ -34,11 +30,11 @@ namespace Bender.Module
         {
             if (message.IsRelevant)
             {
-                var match = regexGoogle.Match(message.Body);
+                var match = RegexGoogle.Match(message.Body);
 
                 if (match.Success)
                 {
-                    this.backend.SendMessageAsync(message.ReplyTo, "http://lmgtfy.com/?q=" + HttpUtility.UrlEncode(match.Groups[1].Value));
+                    _backend.SendMessageAsync(message.ReplyTo, "http://lmgtfy.com/?q=" + HttpUtility.UrlEncode(match.Groups[1].Value));
                 }
             }
         }
@@ -47,11 +43,11 @@ namespace Bender.Module
         {
             if (message.IsRelevant)
             {
-                var match = regexLucky.Match(message.Body);
+                var match = RegexLucky.Match(message.Body);
 
                 if (match.Success)
                 {
-                    this.backend.SendMessageAsync(message.ReplyTo, "http://lmgtfy.com/?l=1&q=" + HttpUtility.UrlEncode(match.Groups[1].Value));
+                    _backend.SendMessageAsync(message.ReplyTo, "http://lmgtfy.com/?l=1&q=" + HttpUtility.UrlEncode(match.Groups[1].Value));
                 }
             }
         }

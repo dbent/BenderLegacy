@@ -1,34 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Bender.Interfaces;
 
 namespace Bender.Common
 {
     public class MessageData
     {
-        public IAddress ReplyTo { get; private set; }
-        public IAddress SenderAddress { get; private set; }
-        public string SenderName { get; private set; }
+        public IAddress ReplyTo { get; }
+        public IAddress SenderAddress { get; }
+        public string SenderName { get; }
 
-        public bool IsFromMyself { get; private set; }
-        public bool IsHistorical { get; private set; }
-        public bool IsPrivate { get; private set; }
+        public bool IsFromMyself { get; }
+        public bool IsHistorical { get; }
+        public bool IsPrivate { get; }
 
-        public string Body { get; private set; }
+        public string Body { get; }
 
         public MessageData(IAddress replyTo, IAddress senderAddress, string senderName, string body, bool isFromMyself, bool isHistorical, bool isPrivate)
         {
-            this.ReplyTo = replyTo;
-            this.SenderAddress = senderAddress;
-            this.SenderName = senderName;
+            ReplyTo = replyTo;
+            SenderAddress = senderAddress;
+            SenderName = senderName;
 
-            this.IsFromMyself = isFromMyself;
-            this.IsHistorical = isHistorical;
-            this.IsPrivate = isPrivate;
+            IsFromMyself = isFromMyself;
+            IsHistorical = isHistorical;
+            IsPrivate = isPrivate;
 
-            this.Body = body;
+            Body = body;
         }
     }
 }

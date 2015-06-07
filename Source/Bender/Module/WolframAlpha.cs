@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Bender.Apis.WolframAlpha;
-using Bender.Common;
 using Bender.Configuration;
+using Bender.Interfaces;
 using Bender.Persistence;
 
 namespace Bender.Module
@@ -15,31 +13,31 @@ namespace Bender.Module
     [Export(typeof(IModule))]
     public class WolframAlpha : IModule
     {
-        private static Regex regex = new Regex(@"\?\s*$", RegexOptions.IgnoreCase);
+        private static readonly Regex Regex = new Regex(@"\?\s*$", RegexOptions.IgnoreCase);
 
-        private IConfiguration config;
-        private IBackend backend;
+        private IConfiguration _config;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.config = config;
-            this.backend = backend;
+            _config = config;
+            _backend = backend;
         }
 
         public async void OnMessage(IMessage message)
         {
             if (message.IsRelevant)
             {
-                if (regex.IsMatch(message.Body))
+                if (Regex.IsMatch(message.Body))
                 {
                     string answer = null;
 
-                    var response = await new WolframAlphaClient(this.config[Constants.ConfigKey.WolframAlphaApiKey]).QueryAsync(message.Body, Format.PlainText);
+                    var response = await new WolframAlphaClient(_config[Constants.ConfigKey.WolframAlphaApiKey]).QueryAsync(message.Body, Format.PlainText);
 
-                    var resultPods = response.Descendants("pod").Where(i => String.Equals((string)i.Attribute("id"), "result", StringComparison.OrdinalIgnoreCase));
+                    var resultPods = response.Descendants("pod").Where(i => string.Equals((string)i.Attribute("id"), "result", StringComparison.OrdinalIgnoreCase));
                     if (resultPods.Any())
                     {
-                        var primary = resultPods.Where(i => String.Equals((string)i.Attribute("primary"), "true", StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                        var primary = resultPods.FirstOrDefault(i => string.Equals((string)i.Attribute("primary"), "true", StringComparison.OrdinalIgnoreCase));
                         if (primary != null)
                         {
                             var plaintext = primary.Descendants("plaintext").FirstOrDefault();
@@ -94,11 +92,11 @@ namespace Bender.Module
 
                     if(answer != null)
                     {
-                        await this.backend.SendMessageAsync(message.ReplyTo, answer);
+                        await _backend.SendMessageAsync(message.ReplyTo, answer);
                     }
                     else
                     {
-                        await this.backend.SendMessageAsync(message.ReplyTo, @"/me ¯\_(ツ)_/¯");
+                        await _backend.SendMessageAsync(message.ReplyTo, @"/me ¯\_(ツ)_/¯");
                     }
                 }
             }

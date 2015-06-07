@@ -1,26 +1,24 @@
-﻿using Bender.Configuration;
-using Bender.Persistence;
-using System;
+﻿using System;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Bend;
-using Bend.Internal;
+using Bender.Configuration;
+using Bender.Interfaces;
+using Bender.Internal.Extensions;
+using Bender.Persistence;
 
 namespace Bender.Module
 {
     [Export(typeof(IModule))]
     public class Stats : IModule
     {
-        private static Regex regexUptime = new Regex(@"^\s*uptime\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex RegexUptime = new Regex(@"^\s*uptime\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private IConfiguration config;
-        private IBackend backend;
+        private IBackend _backend;
 
         public void OnStart(IConfiguration config, IBackend backend, IKeyValuePersistence persistence)
         {
-            this.config = config;
-            this.backend = backend;
+            _backend = backend;
         }
 
         public void OnMessage(IMessage message)
@@ -33,11 +31,11 @@ namespace Bender.Module
 
         private void TryUptime(IMessage message)
         {
-            var match = regexUptime.Match(message.Body);
+            var match = RegexUptime.Match(message.Body);
             if (match.Success)
             {
                 var startTime = Process.GetCurrentProcess().StartTime;
-                this.backend.SendMessageAsync(message.ReplyTo, @"I have been running since {0} ({1}).".FormatWith(startTime, DateTime.Now - startTime));
+                _backend.SendMessageAsync(message.ReplyTo, @"I have been running since {0} ({1}).".FormatWith(startTime, DateTime.Now - startTime));
             }
         }
     }
