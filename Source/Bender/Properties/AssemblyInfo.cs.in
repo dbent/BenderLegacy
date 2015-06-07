@@ -6,6 +6,6 @@
 [assembly: AssemblyCompany("Bender Contributors")]
 [assembly: AssemblyCopyright("Copyright © 2012-2015")]
 
-[assembly: AssemblyVersion("0.0")]
-[assembly: AssemblyFileVersion("0.0.0")]
-[assembly: AssemblyInformationalVersion("0.0.0")]
+[assembly: AssemblyVersion("<%VERSION.MAJOR%>.<%VERSION.MINOR%>")]
+[assembly: AssemblyFileVersion("<%VERSION.MAJOR%>.<%VERSION.MINOR%>.<%VERSION.PATCH%>")]
+[assembly: AssemblyInformationalVersion("<%VERSION%>")]
