@@ -1,0 +1,11 @@
+﻿using System.Reflection;
+
+[assembly: AssemblyTitle("Bender")]
+[assembly: AssemblyDescription("Bender XMPP Bot")]
+[assembly: AssemblyProduct("Bender")]
+[assembly: AssemblyCompany("Bender Contributors")]
+[assembly: AssemblyCopyright("Copyright © 2012-2015")]
+
+[assembly: AssemblyVersion("<%VERSION.MAJOR%>.<%VERSION.MINOR%>")]
+[assembly: AssemblyFileVersion("<%VERSION.MAJOR%>.<%VERSION.MINOR%>.<%VERSION.PATCH%>")]
+[assembly: AssemblyInformationalVersion("<%VERSION%>")]

@@ -1,0 +1,8 @@
+/Library/
+/Output/
+
+*.suo
+*.user
+*.orig
+
+AssemblyInfo.cs
