@@ -5,8 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Bent.Common;
-using Bent.Common.Extensions;
 using Bend;
 
 namespace Bend.MultiUserChat
@@ -36,7 +34,8 @@ namespace Bend.MultiUserChat
             this.xmppClient.SendMessage(this.roomJid,
                 type: MessageType.GroupChat,
                 lang: new Automatic<CultureInfo>(),
-                bodies: new Body(message, new Automatic<CultureInfo>()).AsEnumerable());
+                bodies: new[] { new Body(message, new Automatic<CultureInfo>()) }
+            );
         }        
     }
 }

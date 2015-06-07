@@ -110,14 +110,14 @@ public string GetGitRevision(bool useShort)
     return null;
 }
 
-public SemVer GetVersion(string project)
+public SemVer GetVersion()
 {
-    return GetChangeLog(project).LatestVersion;
+    return GetChangeLog().LatestVersion;
 }
 
-public ChangeLog GetChangeLog(string project)
+public ChangeLog GetChangeLog()
 {
-    return new ChangeLog($"ChangeLog.{project}.md");
+    return new ChangeLog($"CHANGES.md");
 }
 
 public sealed class ChangeLog

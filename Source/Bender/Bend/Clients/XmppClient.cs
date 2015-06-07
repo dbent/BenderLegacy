@@ -6,9 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Bent.Common;
-using Bent.Common.Extensions;
 using Bend;
+using Bend.Utility;
 
 namespace Bend
 {
@@ -99,17 +98,17 @@ namespace Bend
 
             stanza.Add(new XAttribute("to", to));
 
-            if (type.IsNotNull())
+            if (type != null)
             {
                 stanza.Add((XAttribute)type);
             }
 
-            if (!lang.HasValue || lang.Value.IsNotNull())
+            if (!lang.HasValue || lang.Value != null)
             {
                 stanza.Add(new XAttribute(XmlNamespace.Lang, lang.ValueOr(CultureInfo.CurrentCulture)));
             }
 
-            if (bodies.IsNotNullOrEmpty())
+            if (bodies != null && bodies.Any())
             {
                 stanza.Add(bodies.Select(i => (XElement)i));
             }
@@ -123,22 +122,22 @@ namespace Bend
         {
             var stanza = new XElement(ClientNamespace.Presence, new XAttribute("id", this.GenerateId()));
 
-            if (to.IsNotNull())
+            if (to != null)
             {
                 stanza.Add(new XAttribute("to", to));
             }
 
-            if (type.IsNotNull())
+            if (type != null)
             {
                 stanza.Add((XAttribute)type);
             }
 
-            if (!lang.HasValue || lang.Value.IsNotNull())
+            if (!lang.HasValue || lang.Value != null)
             {
                 stanza.Add(new XAttribute(XmlNamespace.Lang, lang.ValueOr(CultureInfo.CurrentCulture)));
             }
 
-            if (extendedContent.IsNotNullOrEmpty())
+            if (extendedContent != null && extendedContent.Any())
             {
                 stanza.Add(extendedContent);
             }
@@ -173,7 +172,7 @@ namespace Bend
 
         private void DisposeClientStream()
         {
-            if (this.clientStream.IsNotNull())
+            if (this.clientStream != null)
             {
                 this.clientStream.Dispose();
                 this.clientStream = null;

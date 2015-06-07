@@ -8,12 +8,12 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
-using Bent.Common;
+using Bend;
+using Bend.Internal;
+using Bend.Utility;
 using Bent.Common.Exceptions;
-using Bent.Common.Extensions;
 using Bent.Common.IO;
 using Bent.Common.Text;
-using Bend;
 
 namespace Bend
 {
@@ -143,7 +143,7 @@ namespace Bend
         {
             get
             {
-                return this.boundJid.IsNull() ? this.originalJid : this.boundJid;
+                return this.boundJid == null ? this.originalJid : this.boundJid;
             }
         }
 

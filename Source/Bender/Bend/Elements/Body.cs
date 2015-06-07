@@ -5,8 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Bent.Common;
-using Bent.Common.Extensions;
 
 namespace Bend
 {
@@ -18,12 +16,12 @@ namespace Bend
         {
             this.element = new XElement(ClientNamespace.Body);
 
-            if (!lang.HasValue || lang.Value.IsNotNull())
+            if (!lang.HasValue || lang.Value != null)
             {
                 this.element.Add(new XAttribute(XmlNamespace.Lang, lang.ValueOr(CultureInfo.CurrentCulture)));
             }
 
-            if (value.IsNotNull())
+            if (value != null)
             {
                 this.element.Add(value);
             }
